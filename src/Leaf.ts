@@ -5,19 +5,36 @@ import { Forest } from './Forest'
 import { transObj } from '@wonderlandlabs/transact/dist/types'
 import { childDef, leafConfig, leafI, leafName, pending, validator, valueCache } from './types'
 
+const isLeafConfig = (config: any) => config && typeof config === 'object' && ('$value' in config)
+
 export class Leaf {
-  constructor(forest: Forest, config: leafConfig) {
+  constructor(forest: Forest, config: leafConfig | any) {
     this.id = uuid.v4();
-    this.name = config?.name;
+
+    if (!isLeafConfig(config)) {
+      config = {
+        $value: config,
+        validator: {type: true}
+      }
+    }
+
+    const lcConfig = config as leafConfig;
+    this.name = lcConfig?.name;
     this.forest = forest;
-    this.parentId = config?.parentId;
-    this.realStore = c(config.value);
-    if (config.validator) {
-      this._validator = config.validator;
+    this.parentId = lcConfig?.parentId;
+    this.realStore = c(lcConfig.$value);
+    if (lcConfig.validator) {
+      const val = lcConfig.validator;
+      if ('type' in val &&
+        typeof (val.type) === 'object'
+        && (!Array.isArray(val.type))
+        && val.type === true) {
+        lcConfig.validator = {type: this.store.type};
+      }
+      this._validator = lcConfig.validator;
     }
     if (config.children) {
       c(config.children).forEach((def, key: string) => {
-        console.log('---- adding child:', def, key, 'to', this.id);
         this.addChild(def, key)
       })
     }
@@ -28,6 +45,15 @@ export class Leaf {
   private readonly _validator?: validator | validator[] | undefined;
   public parentId?: string;
   name?: leafName;
+
+  toJSON() {
+    return {
+      id: this.id,
+      value: this.value,
+      type: this.store.type,
+      parentId: this.parentId
+    }
+  }
 
   get parent(): leafI | undefined {
     return this.parentId ? this.forest.leaves.get(this.parentId) : undefined;
@@ -137,7 +163,7 @@ export class Leaf {
     return !!this.childKeys?.hasValue(key);
   }
 
-  addChild(config: leafConfig, key: any) {
+  addChild(value: any, key: any) {
     if (!(this.store.family === 'container')) {
       throw new Error('cannot join child to a non-container leaf');
     }
@@ -145,7 +171,16 @@ export class Leaf {
       this.childKeys = c(new Map());
     }
 
-    const leaf = new Leaf(this.forest, { ...config, parentId: this.id });
+    if (!isLeafConfig(value)) {
+       this.addChild({
+        $value: value, parentId: this.id
+      }, key);
+       return;
+    } else {
+      value.parentId = this.id;
+    }
+
+    const leaf = new Leaf(this.forest, value);
     this.childKeys.set(leaf.id, key);
 
     this.forest.addLeaf(leaf);
@@ -207,4 +242,10 @@ export class Leaf {
     }
   }
 
+  /* ------------------ actions
+   */
+
+  change(value: any) {
+    this.forest.do('updateLeafValue', this.id, value);
+  }
 }
