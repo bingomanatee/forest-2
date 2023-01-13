@@ -3,7 +3,7 @@ import { c } from '@wonderlandlabs/collect'
 import uuid from './helpers/uuid'
 import { Forest } from './Forest'
 import { transObj } from '@wonderlandlabs/transact/dist/types'
-import { childDef, leafConfig, leafI, leafName, pending, validator, valueCache } from './types'
+import { childDef, leafConfig, leafI, leafName, pending, testDef, valueCache } from './types'
 
 const isLeafConfig = (config: any) => config && typeof config === 'object' && ('$value' in config)
 
@@ -14,7 +14,7 @@ export class Leaf {
     if (!isLeafConfig(config)) {
       config = {
         $value: config,
-        validator: {type: true}
+        validator: { type: true }
       }
     }
 
@@ -23,15 +23,15 @@ export class Leaf {
     this.forest = forest;
     this.parentId = lcConfig?.parentId;
     this.realStore = c(lcConfig.$value);
-    if (lcConfig.validator) {
-      const val = lcConfig.validator;
-      if ('type' in val &&
-        typeof (val.type) === 'object'
-        && (!Array.isArray(val.type))
-        && val.type === true) {
-        lcConfig.validator = {type: this.store.type};
+    if (lcConfig.test) {
+      const test = lcConfig.test;
+      if ('type' in test &&
+        typeof (test.type) === 'object'
+        && (!Array.isArray(test.type))
+        && test.type === true) {
+        lcConfig.test = { type: this.store.type };
       }
-      this._validator = lcConfig.validator;
+      this._validator = lcConfig.test;
     }
     if (config.children) {
       c(config.children).forEach((def, key: string) => {
@@ -42,7 +42,7 @@ export class Leaf {
 
   public id: string;
   private forest: Forest;
-  private readonly _validator?: validator | validator[] | undefined;
+  private readonly _validator?: testDef | testDef[] | undefined;
   public parentId?: string;
   name?: leafName;
 
@@ -59,10 +59,10 @@ export class Leaf {
     return this.parentId ? this.forest.leaves.get(this.parentId) : undefined;
   }
 
-
-  private doValidate(val: validator) {
+  private doValidate(val: testDef) {
     if (typeof val === 'function') {
       const out = val(this.value, this);
+      console.log('doValidate: out = ', out);
       if (out) {
         if (typeof out === 'string') {
           throw new Error(out);
@@ -71,12 +71,12 @@ export class Leaf {
       }
     } else if (val.type) {
       if (Array.isArray(val.type)) {
-        if (!val.type.includes(this.realStore.type)) {
-          throw new Error('leaf type must be ' + val.type.join(' or '));
+        if (!val.type.includes(this.type)) {
+          throw new Error(`leaf ${this.id} type must be ${val.type.join(' or ')}`);
         }
       } else {
-        if (this.realStore.type !== val.type) {
-          throw new Error('leaf.type must be ' + val.type);
+        if (this.type !== val.type) {
+          throw new Error(`leaf ${this.type} type must be ${val.type}`);
         }
       }
     }
@@ -105,16 +105,26 @@ export class Leaf {
    */
   public get store() {
     if (this.pendings?.size) {
-      return (this.pendings.lastItem as pending).store;
+      const store = (this.pendings.lastItem as pending).store;
+      if (store) {
+        return store;
+      } else {
+        console.warn('pendings has bad reference:', this.pendings.value);
+      }
     }
     return this.realStore;
   }
 
   get localValue(): any {
+    if(!this.store) {
+      console.log('========== broken leaf:', this);
+    }
     return this.store.value;
   }
 
   _valueCache?: valueCache;
+
+  /* -------------- value passthroughs ------------ */
 
   get value() {
     if (!this.hasChildren) {
@@ -131,6 +141,21 @@ export class Leaf {
     });
     this._valueCache = { value: store.value, lastTransId: this.forest.lastTransId };
     return store.value;
+  }
+
+  set(key: any, value: any) {
+    if (!(this.family === 'container')) {
+      throw new Error(`cannot set field of leaf ${this.id} (type = ${this.type}`);
+    }
+    this.forest.do('setLeafFieldValue', this.id, key, value);
+  }
+
+  get type() {
+    return this.store.type;
+  }
+
+  get family() {
+    return this.store.family
   }
 
   /**
@@ -172,10 +197,10 @@ export class Leaf {
     }
 
     if (!isLeafConfig(value)) {
-       this.addChild({
+      this.addChild({
         $value: value, parentId: this.id
       }, key);
-       return;
+      return;
     } else {
       value.parentId = this.id;
     }
@@ -236,8 +261,8 @@ export class Leaf {
 
   commitPending() {
     if (this.pendings?.size) {
-      const { value } = this.pendings.lastItem;
-      this.realStore = value;
+      const { store } = this.pendings.lastItem;
+      this.realStore = store;
       this.purgePending();
     }
   }

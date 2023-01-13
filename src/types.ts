@@ -18,18 +18,21 @@ export type leafI = {
   parentId?: string;
   shareChildValues() : void;
   toJSON() : generalObj;
+  type: string;
+  family: string;
 }
 
 export type pending = { trans: transObj, store: collectObj };
 export type childDef = { child: leafI, key: any, leafId: string };
 export type valueCache = { lastTransId: number, value: any };
-export type validatorFn = (value: any, leaf: leafI) => any;
-export type validator = validatorFn | { type?: boolean | string | string[] }
+export type testFn = (value: any, leaf: leafI) => any;
+export type testType = string | string[];
+export type testDef = testFn | { type?: boolean | testType };
 type configChild = leafConfig | any;
 export type leafConfig = {
   $value: any;
   parentId?: string;
-  validator?: validator | validator[];
+  test?: testDef | testDef[];
   name?: leafName;
   children?: { [key: string]: configChild } | Map<any, configChild>
 }
