@@ -115,6 +115,83 @@ describe('Forest', () => {
           e = err;
         }
         expect(e.message).toEqual('leaf string type must be number');
+        // type error causes thrown error;
+        // but if trapped you can continue to change
+
+        expect(point.value).toEqual({ x: 10, y: 0 });
+
+        point.set('y', 20);
+        expect(point.value).toEqual({ x: 10, y: 20 });
+      });
+    });
+    const isWhole = (n: any) => {
+      if (!((typeof n === 'number') && (n >= 0))
+      ) {
+        throw new Error('must be a whole number')
+      }
+    };
+    describe('functional tests', () => {
+
+      it('accept tests for leaf values', () => {
+
+        const point = new Forest({
+          $value: { x: 0, y: 0 },
+          children: {
+            x: { $value: 0, test: isWhole },
+            y: { $value: 0, test: isWhole },
+          }
+        });
+        point.set('x', 10);
+
+        expect(point.value).toEqual({ x: 10, y: 0 })
+
+        let e: any;
+        try {
+          point.set('y', 'forty');
+        } catch (err) {
+          e = err;
+        }
+        expect(e.message).toEqual('must be a whole number');
+        // type error causes thrown error;
+        // but if trapped you can continue to change
+
+        expect(point.value).toEqual({ x: 10, y: 0 });
+
+        point.set('y', 20);
+        expect(point.value).toEqual({ x: 10, y: 20 });
+      });
+    });
+    describe('array of tests', () => {
+      it('accept tests for leaf values', () => {
+
+        const point = new Forest({
+          $value: { x: 0, y: 0 },
+          children: {
+            x: { $value: 0, test: [ {type: 'number'}, isWhole] },
+            y: { $value: 0, test: [{type: 'number'}, isWhole] },
+          }
+        });
+        point.set('x', 10);
+
+        expect(point.value).toEqual({ x: 10, y: 0 })
+
+        let e: any;
+        try {
+          point.set('y', 'forty');
+        } catch (err) {
+          e = err;
+        }
+        expect(e.message).toEqual('leaf string type must be number');
+        // type error causes thrown error, and value is not changed.
+        // if trapped you can continue to change
+
+        expect(point.value).toEqual({ x: 10, y: 0 });
+        try {
+          point.set('x', -100);
+        } catch (err2) {
+          e = err2;
+        }
+        expect(e.message).toEqual('must be a whole number');
         expect(point.value).toEqual({ x: 10, y: 0 });
 
         point.set('y', 20);
@@ -122,6 +199,4 @@ describe('Forest', () => {
       });
     });
   });
-
-
 });

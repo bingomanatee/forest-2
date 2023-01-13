@@ -62,7 +62,6 @@ export class Leaf {
   private doValidate(val: testDef) {
     if (typeof val === 'function') {
       const out = val(this.value, this);
-      console.log('doValidate: out = ', out);
       if (out) {
         if (typeof out === 'string') {
           throw new Error(out);
