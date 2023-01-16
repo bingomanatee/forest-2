@@ -110,24 +110,8 @@ describe('Forest', () => {
             console.log('error in sub: ', err);
           }
         });
-/*        point.trans.subscribe({
-          next(transSet) {
-            console.log('current transSet: ---------', Array.from(transSet).map((trans) => ({
-                id: trans.id,
-                action: trans.action,
-                state: trans.state,
-                params: trans.params,
-              })),
-              'leafs:', Array.from(point.leaves.values()).map((l) => JSON.stringify(l.toJSON())));
-          },
-          error(err) {
-            console.log('---- error in sub: ', err);
-          }
-        })*/
 
-        console.log('======================================== action failure test ======================================== ');
         point.do.setXYZ(10, 20, 30);
-        console.log(' END ======================================== action failure test ======================================== ');
         expect(point.value).toEqual({ x: 10, y: 20, z: 30 });
 
         let e;

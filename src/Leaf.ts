@@ -125,7 +125,7 @@ export class Leaf implements leafI {
   addAction(name: string | number, fn: (...args: any[]) => any, setter = false, fromDoInit = false) {
     const self = this;
     const handler = (...args: any[]) => {
-        return fn(self, ...args);
+      return fn(self, ...args);
     }
     try {
       if (setter) {
@@ -159,6 +159,7 @@ export class Leaf implements leafI {
   // ------------------ validation --------------------
 
   public firstType: string;
+
   private _initTypes(list: testFn[], types: string | string[] | boolean) {
     switch (c(types).type) {
       case 'string':
@@ -171,7 +172,9 @@ export class Leaf implements leafI {
         break;
 
       case 'boolean':
-        if (!types) return;
+        if (!types) {
+          return;
+        }
         list.push((value, leaf: leafI) => {
           const con = c(value);
           if (con.type !== leaf.firstType) {
@@ -223,7 +226,9 @@ export class Leaf implements leafI {
         this._test = (value) => {
           for (const t of list) {
             const out = t(value, this); // can throw
-            if (out) throw (typeof out === 'string' ? new Error(out) : out);
+            if (out) {
+              throw (typeof out === 'string' ? new Error(out) : out);
+            }
           }
         }
 
@@ -235,7 +240,9 @@ export class Leaf implements leafI {
       return;
     }
     const value = this.test(this.value);
-    if (value) console.log('test of ', value, 'returned', value);
+    if (value) {
+      console.log('test of ', value, 'returned', value);
+    }
     if (value) {
       if (typeof value === 'string') {
         throw new Error(value)
@@ -436,7 +443,9 @@ export class Leaf implements leafI {
 
       }
       delete this._valueCache;
-      if (!this.pendings?.size) this.forest.unmarkPending(this.id);
+      if (!this.pendings?.size) {
+        this.forest.unmarkPending(this.id);
+      }
     } catch (err) {
       console.log('error in purgePending: ', err);
     }
@@ -444,7 +453,7 @@ export class Leaf implements leafI {
 
   purgeAfter(transId: number) {
     if (this.pendings) {
-      this.pendings.filter(({trans}) => trans.id <= transId);
+      this.pendings.filter(({ trans }) => trans.id <= transId);
       if (this.pendings.size === 0) {
         this.purgePending();
       }
@@ -453,11 +462,13 @@ export class Leaf implements leafI {
   }
 
   commitPending() {
-    this.children.forEach(({child}) => child.commitPending());
+    this.children.forEach(({ child }) => child.commitPending());
     if (this.pendings?.size) {
-      console.log('last item of ', this.id, 'is', this.pendings.lastItem);
       const { store } = this.pendings.lastItem;
-      this.realStore = store;
+      if (store) {
+        this.realStore = store;
+        delete this._valueCache;
+      }
     }
   }
 
@@ -475,7 +486,7 @@ export class Leaf implements leafI {
   }
 
   private get _pendingSummary() {
-    return this.pendings?.getMap(({ store, trans}) => {
+    return this.pendings?.getMap(({ store, trans }) => {
       return [trans.id, trans.action, store.value];
     });
   }

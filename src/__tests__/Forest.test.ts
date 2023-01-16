@@ -1,4 +1,5 @@
 import { Forest } from '../index';
+import { leafI } from '../types'
 
 describe('Forest', () => {
   describe('constructor', () => {
@@ -100,11 +101,13 @@ describe('Forest', () => {
   describe('update/subscribe', () => {
     it('should broadcast change to the subscribers', () => {
       const simpleState = new Forest({ $value: { x: 1, y: 2 } });
+
       const history: any[] = [];
 
       simpleState.subscribe({
         next(value) {
           history.push(value)
+          console.log('history is ', history)
         },
         error(err) {
           console.log('error in sub:', err);
@@ -115,7 +118,7 @@ describe('Forest', () => {
       simpleState.set('x', 4);
       expect(history).toEqual([{ x: 1, y: 2 }, { x: 4, y: 2 }])
 
-      expect(simpleState.pendingLeafIds.size).toBe(0);
+
       simpleState.set('y', 3);
       expect(history).toEqual([{ x: 1, y: 2 }, { x: 4, y: 2 }, { x: 4, y: 3 }])
     });

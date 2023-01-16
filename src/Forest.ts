@@ -3,7 +3,7 @@ import { Leaf } from './Leaf'
 import { transObj } from '@wonderlandlabs/transact/dist/types'
 import { c } from '@wonderlandlabs/collect'
 import { keyName, leafConfig, leafI } from './types'
-import { distinctUntilChanged, filter, map, Observer } from 'rxjs'
+import { filter, map, Observer } from 'rxjs'
 import { handlers } from './handlers'
 
 export class Forest {
@@ -17,7 +17,7 @@ export class Forest {
       next(transSet) {
         if (transSet.size === 0) {
           if (self.pendingLeafIds.size > 0) {
-            self.dot('commitPending');
+            self.commitPending();
           }
         } else {
           self.lastTransId = c(transSet)
@@ -38,9 +38,8 @@ export class Forest {
   subscribe(listener: Partial<Observer<Set<transObj>>> | ((value: Set<transObj>) => void) | undefined) {
     const self = this;
     return this.trans.pipe(
-      filter((set) => set.size === 0 && self.pendingLeafIds.size === 0),
-      map(() => self.value),
-      distinctUntilChanged()
+      filter((set) => set.size === 0),
+      map(() => self.value)
     ).subscribe(listener);
   }
 
@@ -73,22 +72,25 @@ export class Forest {
     this.pendingLeafIds.addAfter(id);
   }
 
+  commitPending() {
+    this.pendingLeaves?.forEach((leaf: leafI) => leaf.commitPending());
+  }
+
   unmarkPending(id: string) {
     this.pendingLeafIds.deleteItem(id);
   }
+
   purgePending(trans: transObj) {
     this.pendingLeaves.forEach((leaf: leafI) => leaf.purgePending(trans));
   }
+
   addLeaf(leaf: leafI) {
     this.leaves.set(leaf.id, leaf);
   }
 
   purgeTo(transId: number) {
-    console.log('purgeTo:', transId, 'pending IDs = ', this.pendingLeafIds.values);
     this.pendingLeaves.forEach((leaf: leafI) => {
-      console.log('purging leaf ', leaf.toJSON(), 'with pending values to ', transId);
       leaf.purgeAfter(transId);
-      console.log('after purging leaf has pendings', leaf.pendings?.values);
     })
   }
 
@@ -117,5 +119,28 @@ export class Forest {
   set(key: any, value: any): leafI {
     this.root.set(key, value);
     return this.root;
+  }
+
+  // --------------- debugging hooks
+
+  broadcastTrans() {
+    const self = this
+    this.trans.subscribe({
+      next(list) {
+        console.log('transactions:', Array.from(list).map(({ id, params, action }) => ([`${id}(${action})`, params])), 'value is ', self.value);
+      },
+      error(err) {
+        console.log('error in trans: ', err);
+      }
+    });
+
+    this.subscribe({
+      next(value) {
+        console.log('bt value = ', value);
+      },
+      error(err) {
+        console.log('error in sub: ', err);
+      }
+    })
   }
 }

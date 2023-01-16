@@ -37,9 +37,6 @@ export const handlers = (self: Forest) => ({
         throw err;
       }
     ],
-    commitPending() {
-        self.pendingLeaves?.forEach((leaf: leafI) => leaf.commitPending());
-    },
     validatePending: () => {
       self.pendingLeaves?.forEach((leaf: leafI) => leaf.validate());
     },
