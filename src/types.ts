@@ -31,6 +31,7 @@ export type leafI = {
   family: string;
   do: leafFnObj;
   set(key: any, value: any): leafI;
+  get(key: any): any;
   recompute(): void;
 }
 

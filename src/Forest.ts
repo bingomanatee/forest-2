@@ -121,6 +121,10 @@ export class Forest {
     return this.root;
   }
 
+  get store() {
+    return this.root.store;
+  }
+
   // --------------- debugging hooks
 
   broadcastTrans() {

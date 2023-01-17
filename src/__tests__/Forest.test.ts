@@ -107,7 +107,6 @@ describe('Forest', () => {
       simpleState.subscribe({
         next(value) {
           history.push(value)
-          console.log('history is ', history)
         },
         error(err) {
           console.log('error in sub:', err);
@@ -150,7 +149,7 @@ describe('Forest', () => {
     })
   });
 
-  describe('tests', () => {
+  describe('tests(validation)', () => {
     describe('type tests', () => {
       it('accept tests for leaf values', () => {
 

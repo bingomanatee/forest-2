@@ -93,7 +93,7 @@ export class Leaf implements leafI {
       })
     }
 
-    if (this.type === 'object' || this.type === 'map') {
+    if (this.canHaveSetters) {
       if (config.setKeys) { // manually specify the setters you want.
         config.setKeys.forEach((name) => this.addSet(name));
       } else {
@@ -107,8 +107,16 @@ export class Leaf implements leafI {
     this.updateDo();
   }
 
+  private get canHaveSetters(): boolean {
+    return this.type === 'object' || this.type === 'map'
+  }
+
   private updateDo() {
-    this.do = { ...this.setters, ...this.actions }
+    if (!this.canHaveSetters) {
+      this.do = this.actions;
+    } else {
+      this.do = { ...this.setters, ...this.actions }
+    }
   }
 
   /**
@@ -151,8 +159,8 @@ export class Leaf implements leafI {
   }
 
   private addSet(name: string | number, fromDoInit = false) {
-    this.addAction(`set_${name}`, (leaf: leafI, key, value: any) => {
-      return leaf.set(key, value)
+    this.addAction(`set_${name}`, (leaf: leafI, value: any) => {
+      return leaf.set(name, value)
     }, true, fromDoInit);
   }
 
@@ -313,8 +321,17 @@ export class Leaf implements leafI {
     if (!(this.family === 'container')) {
       throw new Error(`cannot set field of leaf ${this.id} (type = ${this.type}`);
     }
-    this.forest.dot('setLeafFieldValue', this.id, key, value);
+    if (this.store.get(key) !== value) {
+      this.forest.dot('setLeafFieldValue', this.id, key, value);
+    }
     return this;
+  }
+
+  get(key: any): any {
+    if (!(this.family === 'container')) {
+      throw new Error(`cannot get field of leaf ${this.id} (type = ${this.type}`);
+    }
+    return this.store.get(key);
   }
 
   get type() {
@@ -415,7 +432,11 @@ export class Leaf implements leafI {
     if (!this.pendings) {
       this.pendings = c([]);
     }
+    const type = this.type;
     this.pendings.addAfter({ store: c(value), trans });
+    if (this.type !== type) {
+      this.updateDo();
+    }
     this.forest.markPending(this.id);
   }
 
@@ -446,6 +467,8 @@ export class Leaf implements leafI {
       if (!this.pendings?.size) {
         this.forest.unmarkPending(this.id);
       }
+      this.updateDo();
+
     } catch (err) {
       console.log('error in purgePending: ', err);
     }

@@ -18,11 +18,9 @@ export const handlers = (self: Forest) => ({
     doAction: [
       (trans: transObj, fn: () => void) => {
         trans.meta.set('startingTransId', self.lastTransId);
-        console.log('starting action', trans.params, 'at', self.lastTransId);
         fn();
 
       }, (err: any, trans: transObj) => {
-        console.log('>>>>>>>>>>>>>>>>>>>>>>> failure on trans', trans.id, 'purging after', trans.meta.get('startingTransId'))
         self.purgeTo(trans.meta.get('startingTransId'));
         throw err;
       }],

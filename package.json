@@ -1,7 +1,7 @@
 {
-  "name": "ts-npm-package-boilerplate",
-  "version": "0.2.1",
-  "description": "TypeScript NPM Module Boilerplate",
+  "name": "@wonderlandlabs/forest",
+  "version": "2.0.0",
+  "description": "React State Machine",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
