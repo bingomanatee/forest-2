@@ -1,10 +1,10 @@
-import { TransactionSet } from "@wonderlandlabs/transact"
-import { Leaf } from './Leaf'
-import { transObj } from '@wonderlandlabs/transact/dist/types'
-import { c } from '@wonderlandlabs/collect'
-import { keyName, leafConfig, leafI } from './types'
-import { filter, map, Observer } from 'rxjs'
-import { handlers } from './handlers'
+import { TransactionSet } from '@wonderlandlabs/transact';
+import { Leaf } from './Leaf';
+import { transObj } from '@wonderlandlabs/transact/dist/types';
+import { c } from '@wonderlandlabs/collect';
+import { keyName, leafConfig, leafI } from './types';
+import { filter, map, Observer } from 'rxjs';
+import { handlers } from './handlers';
 
 export class Forest {
   constructor(rootConfig: leafConfig) {
@@ -20,16 +20,12 @@ export class Forest {
             self.commitPending();
           }
         } else {
-          self.lastTransId = c(transSet)
-            .getReduce((memo: number, trans: transObj) => {
-                return Math.max(memo, trans.id);
-              },
-              self.lastTransId) as number;
+          self.lastTransId = c(transSet).getReduce((memo: number, trans: transObj) => {
+            return Math.max(memo, trans.id);
+          }, self.lastTransId) as number;
         }
       },
-      error() {
-
-      }
+      error() {},
     });
   }
 
@@ -37,10 +33,12 @@ export class Forest {
 
   subscribe(listener: Partial<Observer<Set<transObj>>> | ((value: Set<transObj>) => void) | undefined) {
     const self = this;
-    return this.trans.pipe(
-      filter((set) => set.size === 0),
-      map(() => self.value)
-    ).subscribe(listener);
+    return this.trans
+      .pipe(
+        filter((set) => set.size === 0),
+        map(() => self.value),
+      )
+      .subscribe(listener);
   }
 
   public leaves = new Map<string, leafI>();
@@ -91,7 +89,7 @@ export class Forest {
   purgeTo(transId: number) {
     this.pendingLeaves.forEach((leaf: leafI) => {
       leaf.purgeAfter(transId);
-    })
+    });
   }
 
   /* ---------- ROOT --------------
@@ -128,14 +126,19 @@ export class Forest {
   // --------------- debugging hooks
 
   broadcastTrans() {
-    const self = this
+    const self = this;
     this.trans.subscribe({
       next(list) {
-        console.log('transactions:', Array.from(list).map(({ id, params, action }) => ([`${id}(${action})`, params])), 'value is ', self.value);
+        console.log(
+          'transactions:',
+          Array.from(list).map(({ id, params, action }) => [`${id}(${action})`, params]),
+          'value is ',
+          self.value,
+        );
       },
       error(err) {
         console.log('error in trans: ', err);
-      }
+      },
     });
 
     this.subscribe({
@@ -144,7 +147,7 @@ export class Forest {
       },
       error(err) {
         console.log('error in sub: ', err);
-      }
-    })
+      },
+    });
   }
 }

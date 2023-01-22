@@ -1,6 +1,6 @@
-import { transObj } from '@wonderlandlabs/transact/dist/types'
-import { leafI } from './types'
-import { Forest } from './Forest'
+import { transObj } from '@wonderlandlabs/transact/dist/types';
+import { leafI } from './types';
+import { Forest } from './Forest';
 
 export const handlers = (self: Forest) => ({
   handlers: {
@@ -8,32 +8,31 @@ export const handlers = (self: Forest) => ({
       (trans: transObj, leafId: string, key: any, value: any) => {
         self.dot('updateFieldValue', leafId, key, value);
         self.dot('validatePending');
-
       },
       (err: any, trans: transObj, ...other: any[]) => {
         self.purgePending(trans);
         throw err;
-      }
+      },
     ],
     doAction: [
       (trans: transObj, fn: () => void) => {
         trans.meta.set('startingTransId', self.lastTransId);
         fn();
-
-      }, (err: any, trans: transObj) => {
+      },
+      (err: any, trans: transObj) => {
         self.purgeTo(trans.meta.get('startingTransId'));
         throw err;
-      }],
+      },
+    ],
     setLeafValue: [
       (trans: transObj, leafId: string, value: any) => {
         self.dot('update', leafId, value);
         self.dot('validatePending');
-
       },
       (err: any, trans: transObj, ...other: any[]) => {
         self.purgePending(trans);
         throw err;
-      }
+      },
     ],
     validatePending: () => {
       self.pendingLeaves?.forEach((leaf: leafI) => leaf.validate());
@@ -55,14 +54,12 @@ export const handlers = (self: Forest) => ({
         if (!fromChild && target.parent) {
           self.dot('updateFromChild', target.parentId, leafId);
         }
-
       },
       (error: any, trans: transObj) => {
         self.purgePending(trans);
         throw error;
-      }
-    ]
-    ,
+      },
+    ],
     update: [
       (trans: transObj, leafId: string, value: any, fromParent?: boolean) => {
         const leaf = self.leaves.get(leafId);
@@ -73,15 +70,13 @@ export const handlers = (self: Forest) => ({
             self.trans.do('updateFromChild', leaf.parentId, leafId);
           }
         }
-
       },
       (error: any, trans: transObj, ...other: any[]) => {
         // console.log('update: error', error, 'args: ', trans, other);
         self.purgePending(trans);
         throw error;
-      }
-    ]
-    ,
+      },
+    ],
     updateFromChild(trans: transObj, parentId: string, childId: string) {
       const parent = self.leaves.get(parentId);
       const child = self.leaves.get(childId);
@@ -94,7 +89,6 @@ export const handlers = (self: Forest) => ({
           self.trans.do('updateFromChild', parent.parentId, parentId);
         }
       }
-
-    }
-  }
-})
+    },
+  },
+});

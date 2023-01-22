@@ -1,8 +1,8 @@
-import { collectObj, generalObj } from '@wonderlandlabs/collect/lib/types'
-import { c } from '@wonderlandlabs/collect'
-import uuid from './helpers/uuid'
-import { Forest } from './Forest'
-import { transObj } from '@wonderlandlabs/transact/dist/types'
+import { collectObj, generalObj } from '@wonderlandlabs/collect/lib/types';
+import { c } from '@wonderlandlabs/collect';
+import uuid from './helpers/uuid';
+import { Forest } from './Forest';
+import { transObj } from '@wonderlandlabs/transact/dist/types';
 import {
   childDef,
   keyName,
@@ -11,27 +11,28 @@ import {
   leafI,
   leafName,
   pending,
-  testDef, testFn,
+  testDef,
+  testFn,
   valueCache,
-  valueFilterFn
-} from './types'
-import { LeafChild } from './LeafChild'
+  valueFilterFn,
+} from './types';
+import { LeafChild } from './LeafChild';
 
 export const LEAF_TYPE = Symbol('LEAF_TYPE');
 export const EMPTY_DO = Object.freeze({});
 
-const isLeafConfig = (config: any) => config && typeof config === 'object' && ('$value' in config)
-const isLeaf = (leaf: any) => leaf && typeof leaf === 'object' && leaf.$isLeaf === LEAF_TYPE
+const isLeafConfig = (config: any) => config && typeof config === 'object' && '$value' in config;
+const isLeaf = (leaf: any) => leaf && typeof leaf === 'object' && leaf.$isLeaf === LEAF_TYPE;
 
 export class Leaf implements leafI {
   constructor(forest: Forest, config: leafConfig | any) {
-    this.id = ('id' in config) ? config.id : uuid.v4();
+    this.id = 'id' in config ? config.id : uuid.v4();
 
     if (!isLeafConfig(config)) {
       config = {
         $value: config,
-        test: { type: true }
-      }
+        test: { type: true },
+      };
     }
 
     const lcConfig = config as leafConfig;
@@ -44,8 +45,8 @@ export class Leaf implements leafI {
     this._initTest(lcConfig);
     if (config.children) {
       c(config.children).forEach((def, key: string) => {
-        this.addChild(def, key)
-      })
+        this.addChild(def, key);
+      });
     }
     this._initDo(config);
     this.originalStore = this.store.clone(true);
@@ -57,13 +58,13 @@ export class Leaf implements leafI {
 
   private _test?: testFn | undefined;
   public get test() {
-    return (value: any) => this._test ? this._test(value, this) : undefined;
+    return (value: any) => (this._test ? this._test(value, this) : undefined);
   }
 
   public readonly filter?: valueFilterFn;
   public parentId?: string; // links upwards to its parent; changeable
   name?: leafName;
-  public readonly originalStore: collectObj
+  public readonly originalStore: collectObj;
   do: leafDoObj = EMPTY_DO;
 
   /** --------------------- _initDo -------------------------
@@ -90,20 +91,21 @@ export class Leaf implements leafI {
     if (config.actions) {
       c(config.actions).forEach((fn, name: string) => {
         this.addAction(name, fn);
-      })
+      });
     }
 
     if (this.canHaveSetters) {
-      if (config.setKeys) { // manually specify the setters you want.
+      if (config.setKeys) {
+        // manually specify the setters you want.
         config.setKeys.forEach((name) => this.addSet(name));
       } else {
         this.store.keys
-          .filter((name) => (typeof name === 'string' || typeof name === 'number'))
+          .filter((name) => typeof name === 'string' || typeof name === 'number')
           .forEach((name: string | number) => {
             this.addSet(name, true);
           });
         // console.log('_initDo: childKeys = ', this.childKeys.keys);
-        this.childKeys?.forEach((_leafId, key)  => {
+        this.childKeys?.forEach((_leafId, key) => {
           if (key && typeof key === 'string') {
             this.addSet(key, true);
           }
@@ -114,14 +116,14 @@ export class Leaf implements leafI {
   }
 
   private get canHaveSetters(): boolean {
-    return this.type === 'object' || this.type === 'map'
+    return this.type === 'object' || this.type === 'map';
   }
 
   private updateDo() {
     if (!this.canHaveSetters) {
       this.do = this.actions;
     } else {
-      this.do = { ...this.setters, ...this.actions }
+      this.do = { ...this.setters, ...this.actions };
     }
   }
 
@@ -140,18 +142,18 @@ export class Leaf implements leafI {
     const self = this;
     const handler = (...args: any[]) => {
       return fn(self, ...args);
-    }
+    };
     try {
       if (setter) {
         this.setters[name] = (...args) => {
           let out;
-          self.forest.dot('doAction', () => out = handler(...args), name);
+          self.forest.dot('doAction', () => (out = handler(...args)), name);
           return out;
         };
       } else {
         this.actions[name] = (...args) => {
           let out;
-          self.forest.dot('doAction', () => out = handler(...args), name);
+          self.forest.dot('doAction', () => (out = handler(...args)), name);
           return out;
         };
       }
@@ -165,9 +167,14 @@ export class Leaf implements leafI {
   }
 
   private addSet(name: string | number, fromDoInit = false) {
-    this.addAction(`set_${name}`, (leaf: leafI, value: any) => {
-      return leaf.set(name, value)
-    }, true, fromDoInit);
+    this.addAction(
+      `set_${name}`,
+      (leaf: leafI, value: any) => {
+        return leaf.set(name, value);
+      },
+      true,
+      fromDoInit,
+    );
   }
 
   // ------------------ validation --------------------
@@ -182,7 +189,7 @@ export class Leaf implements leafI {
           if (con.type !== types) {
             throw new Error(`cannot add value of type ${con.type} to leaf ${this.id} (type ${types})`);
           }
-        })
+        });
         break;
 
       case 'boolean':
@@ -241,11 +248,10 @@ export class Leaf implements leafI {
           for (const t of list) {
             const out = t(value, this); // can throw
             if (out) {
-              throw (typeof out === 'string' ? new Error(out) : out);
+              throw typeof out === 'string' ? new Error(out) : out;
             }
           }
-        }
-
+        };
     }
   }
 
@@ -259,7 +265,7 @@ export class Leaf implements leafI {
     }
     if (value) {
       if (typeof value === 'string') {
-        throw new Error(value)
+        throw new Error(value);
       }
       throw value;
     }
@@ -345,7 +351,7 @@ export class Leaf implements leafI {
   }
 
   get family() {
-    return this.store.family
+    return this.store.family;
   }
 
   /* ----------------- parent/child ----------------- */
@@ -377,7 +383,7 @@ export class Leaf implements leafI {
   }
 
   get hasChildren(): boolean {
-    return !!(this.childKeys?.size);
+    return !!this.childKeys?.size;
   }
 
   child(key: keyName) {
@@ -396,12 +402,13 @@ export class Leaf implements leafI {
       this.childKeys = c(new Map());
     }
 
-    if (isLeafConfig(value)) { // value is a config for a NEW leaf
+    if (isLeafConfig(value)) {
+      // value is a config for a NEW leaf
       if (!('id' in value)) {
         try {
-          value.id = `${this.id}:${key}:${uuid.v4()}`
+          value.id = `${this.id}:${key}:${uuid.v4()}`;
         } catch {
-          value.id = `${this.id}:__${uuid.v4()}`
+          value.id = `${this.id}:__${uuid.v4()}`;
         }
       }
       if (!('name' in value) && ['number', 'string'].includes(c(key).type)) {
@@ -417,13 +424,18 @@ export class Leaf implements leafI {
       leaf.parentId = this.id;
       this.childKeys.set(key, leaf);
       this.forest.addLeaf(leaf);
-    } else { // value is a "raw" value for a new leaf.
-      this.addChild({
-        $value: value, parentId: this.id, name: key
-      }, key);
+    } else {
+      // value is a "raw" value for a new leaf.
+      this.addChild(
+        {
+          $value: value,
+          parentId: this.id,
+          name: key,
+        },
+        key,
+      );
       return;
     }
-
   }
 
   /* -------------------- pending values ------------------- */
@@ -467,14 +479,12 @@ export class Leaf implements leafI {
         } else {
           this.pendings.clear();
         }
-
       }
       delete this._valueCache;
       if (!this.pendings?.size) {
         this.forest.unmarkPending(this.id);
       }
       this.updateDo();
-
     } catch (err) {
       console.log('error in purgePending: ', err);
     }
@@ -527,6 +537,6 @@ export class Leaf implements leafI {
       type: this.store.type,
       parentId: this.parentId,
       pendings: this._pendingSummary,
-    }
+    };
   }
 }
