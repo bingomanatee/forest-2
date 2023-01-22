@@ -145,6 +145,7 @@ describe('Forest', () => {
         try {
           list.do.appendMany([4, 5, 'six']);
         } catch (_e) {
+          //@ts-ignore
         }
         expect(list.value).toEqual([1, 2, 3]);
 
