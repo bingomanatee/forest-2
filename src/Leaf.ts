@@ -102,6 +102,12 @@ export class Leaf implements leafI {
           .forEach((name: string | number) => {
             this.addSet(name, true);
           });
+        // console.log('_initDo: childKeys = ', this.childKeys.keys);
+        this.childKeys?.forEach((_leafId, key)  => {
+          if (key && typeof key === 'string') {
+            this.addSet(key, true);
+          }
+        });
       }
     }
     this.updateDo();
@@ -314,7 +320,7 @@ export class Leaf implements leafI {
   }
 
   set value(newValue: any) {
-    this.forest.dot('update', this.id, newValue);
+    this.forest.dot('setLeafValue', this.id, newValue);
   }
 
   set(key: any, value: any) {

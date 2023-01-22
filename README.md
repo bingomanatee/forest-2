@@ -4,6 +4,8 @@ Forest 2.0 is a refactoring of the forest system using
 components that have been put into their own libraries: transact,
 walrus and collect. 
 
+**WARNING**: the online documenation for Forest is relevant to forest 1.0; work is ongoing to update it. 
+
 ## What is Forest? 
 
 Forest is an _observable_ state composed of nested `Leaf` instances. Leaves have values 

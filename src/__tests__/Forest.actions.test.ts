@@ -98,9 +98,7 @@ describe('Forest', () => {
             for (const val of list) {
               try {
                 leaf.do.append(val);
-              } catch (err) {
-                //@ts-ignore
-                console.log('appendManyOrStop ending:',val, err.message);
+              } catch (_e) {
                 return;
               }
             }
@@ -109,9 +107,7 @@ describe('Forest', () => {
             for (const val of list) {
               try {
                 leaf.do.append(val);
-              } catch (err) {
-                //@ts-ignore
-                console.log('appendManyOrStop skipping:',val,  err.message);
+              } catch (_e) {
                 // note - will continue with other values
               }
             }
@@ -148,9 +144,7 @@ describe('Forest', () => {
         expect(list.value).toEqual([1, 2, 3]);
         try {
           list.do.appendMany([4, 5, 'six']);
-        } catch (err) {
-          //@ts-ignore
-          console.log('error:', err?.message);
+        } catch (_e) {
         }
         expect(list.value).toEqual([1, 2, 3]);
 
@@ -201,6 +195,74 @@ describe('Forest', () => {
         // now that point is a "settable" type -- setters reappear.
         expect(point.value).toEqual(new Map([['q', 40]]));
       });
+    });
+
+    describe('documentation', () => {
+      describe('transactions', () => {
+
+        it('should revert ALL the changes in an action with failed code', () => {
+
+          console.log('---------------------- TEST documentation/transactions ---------------');
+
+          const pointValueActions = {
+            double: (leaf: leafI) => leaf.value = 2 * leaf.value,
+            halve: (leaf: leafI) => leaf.value = leaf.value / 2
+          }
+
+          const point = new Forest({
+            $value: {},
+            children: {
+              x: { $value: 0, types: 'number', actions: pointValueActions },
+              y: { $value: 0, types: 'number', actions: pointValueActions }
+            },
+            actions: {
+              double(leaf) {
+                leaf.child('x')?.do.double()
+                leaf.child('y')?.do.double()
+              },
+              magnitude(leaf) {
+                const { x, y } = leaf.value
+                return (x ** 2 + y ** 2) ** 0.5
+              },
+              offset(leaf, x, y) {
+                leaf.do.set_x(leaf.value.x + x)
+                leaf.do.set_y(leaf.value.y + y)
+              }
+            }
+          });
+
+          console.log('doc: leaves = ', Array.from(point.leaves.values()).map(l => l.toJSON()));
+
+          point.subscribe({
+            next(value) {
+              console.log('value:', value)
+            },
+            error(err) {
+              console.log('error:', err)
+            }
+          })
+
+          point.value = { x: 10, y: 20 }
+          console.log('point.magnitude:', point.do.magnitude())
+          point.child('x')?.do.double();
+
+          console.log('---------------------- documentation/transactions ---------------')
+          let message = '';
+          try {
+            point.value = { x: 40, y: 'fifty' }
+          } catch (err: any) {
+            if (err) {
+              message = err.message;
+              console.log('error:', err.message);
+            }
+          }
+          expect(message).toMatch(/cannot add value of type string to leaf .* \(type number\)/)
+          console.log('point.magnitude:', point.do.magnitude())
+          point.do.offset(5, 15)
+          console.log('---------------------- END documentation/transactions ---------------')
+          console.log('---------------------- END TEST documentation/transactions ---------------')
+        });
+      })
     })
   });
 });
