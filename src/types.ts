@@ -62,4 +62,5 @@ export type leafConfig = {
   filter?: valueFilterFn;
   original?: boolean;
   debug?: boolean;
+  fast?: boolean;
 };

@@ -1,6 +1,19 @@
 import { Forest } from '../index';
 import { leafI } from '../types';
 
+function watch(forest: Forest) {
+  const history: any[] = [];
+
+  const sub = forest.subscribe({
+    next(value) {
+      history.push(value);
+    },
+    error(err) {
+      console.log('error in sub:', err);
+    },
+  });
+  return history;
+}
 describe('Forest', () => {
   describe('constructor', () => {
     it('has the correct localValue', () => {
@@ -157,6 +170,55 @@ describe('Forest', () => {
         sub.unsubscribe();
       }
     });
+
+    describe('unique values', () => {
+      it('should suppress non-unique scalars', () => {
+        const num = new Forest({$value: 0});
+        const history = watch(num);
+        num.value = 1;
+        num.value = 1;
+        num.value = 2;
+        num.value = 1;
+        num.value = 1;
+        num.value = 3;
+
+        expect(history).toEqual([0, 1, 2, 1, 3]);
+      })
+      it('should suppress non-unique objects', () => {
+        const point = new Forest({$value: {x: 0, y: 0}});
+        const history = watch(point);
+
+        point.value = {x: 1, y: 1};
+        point.value = {x: 1, y: 1}; // redundant -- suppressed
+        point.do.set_x(2);
+        point.value = ({x: 2, y: 1}); // redundant -- suppressed
+
+        expect(history).toEqual([{x: 0, y: 0}, {x: 1, y: 1}, {x: 2, y: 1}]);
+      })
+      it('should not suppress non-unique scalars if designated fast', () => {
+        const num = new Forest({$value: 0, fast: true});
+        const history = watch(num);
+        num.value = 1;
+        num.value = 1;
+        num.value = 2;
+        num.value = 1;
+        num.value = 1;
+        num.value = 3;
+
+        expect(history).toEqual([0, 1, 1, 2, 1, 1, 3]);
+      })
+      it('should not suppress non-unique objects if designated fast', () => {
+        const point = new Forest({$value: {x: 0, y: 0}, fast: true});
+        const history = watch(point);
+
+        point.value = {x: 1, y: 1};
+        point.value = {x: 1, y: 1}; // redundant -- expressed
+        point.do.set_x(2);
+        point.value = ({x: 2, y: 1}); // redundant -- expressed
+
+        expect(history).toEqual([{x: 0, y: 0}, {x: 1, y: 1}, {x: 1, y: 1}, {x: 2, y: 1}, {x: 2, y: 1}]);
+      })
+    })
   });
 
   describe('tests(validation)', () => {

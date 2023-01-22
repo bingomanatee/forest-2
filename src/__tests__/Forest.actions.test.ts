@@ -127,15 +127,20 @@ describe('Forest', () => {
           },
         });
 
+        const history: any[] = [];
+        point.subscribe((value) => history.push(value));
+
         point.do.setXYZ(10, 20, 30);
         expect(point.value).toEqual({ x: 10, y: 20, z: 30 });
 
         let e;
+        const beforeErrHistory: any[] = [...history];
         try {
           point.do.setXYZ(40, 50, 'sixty');
         } catch (err: any) {
           e = err;
         }
+        expect(history).toEqual(beforeErrHistory);
         expect(e?.message).toMatch(/cannot add value of type string to leaf root:.* \(type number\)/);
         expect(point.value).toEqual({ x: 10, y: 20, z: 30 });
       });
@@ -203,7 +208,7 @@ describe('Forest', () => {
     describe('documentation', () => {
       describe('transactions', () => {
         it('should revert ALL the changes in an action with failed code', () => {
-          console.log('---------------------- TEST documentation/transactions ---------------');
+        //  console.log('---------------------- TEST documentation/transactions ---------------');
 
           const pointValueActions = {
             double: (leaf: leafI) => (leaf.value = 2 * leaf.value),
@@ -232,39 +237,25 @@ describe('Forest', () => {
             },
           });
 
-          console.log(
-            'doc: leaves = ',
-            Array.from(point.leaves.values()).map((l) => l.toJSON()),
-          );
-
-          point.subscribe({
-            next(value) {
-              console.log('value:', value);
-            },
-            error(err) {
-              console.log('error:', err);
-            },
-          });
-
           point.value = { x: 10, y: 20 };
-          console.log('point.magnitude:', point.do.magnitude());
+         // console.log('point.magnitude:', point.do.magnitude());
           point.child('x')?.do.double();
 
-          console.log('---------------------- documentation/transactions ---------------');
+         // console.log('---------------------- documentation/transactions ---------------');
           let message = '';
           try {
             point.value = { x: 40, y: 'fifty' };
           } catch (err: any) {
             if (err) {
               message = err.message;
-              console.log('error:', err.message);
+             // console.log('error:', err.message);
             }
           }
           expect(message).toMatch(/cannot add value of type string to leaf .* \(type number\)/);
-          console.log('point.magnitude:', point.do.magnitude());
+          // console.log('point.magnitude:', point.do.magnitude());
           point.do.offset(5, 15);
-          console.log('---------------------- END documentation/transactions ---------------');
-          console.log('---------------------- END TEST documentation/transactions ---------------');
+         // console.log('---------------------- END documentation/transactions ---------------');
+         // console.log('---------------------- END TEST documentation/transactions ---------------');
         });
       });
     });

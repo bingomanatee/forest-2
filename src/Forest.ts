@@ -3,12 +3,13 @@ import { Leaf } from './Leaf';
 import { transObj } from '@wonderlandlabs/transact/dist/types';
 import { c } from '@wonderlandlabs/collect';
 import { keyName, leafConfig, leafI } from './types';
-import { filter, map, Observer } from 'rxjs';
+import { distinctUntilChanged, filter, map, Observer } from 'rxjs';
 import { handlers } from './handlers';
 
 export class Forest {
   constructor(rootConfig: leafConfig) {
     this.debug = !!rootConfig.debug;
+    this.fast = !!rootConfig.fast;
     this.root = new Leaf(this, { id: 'root', ...rootConfig });
     this.addLeaf(this.root);
     this.trans = new TransactionSet(handlers(this));
@@ -25,19 +26,35 @@ export class Forest {
           }, self.lastTransId) as number;
         }
       },
-      error() {},
+      error() {
+      },
     });
   }
 
   public debug = false;
+  private readonly fast: boolean;
 
   subscribe(listener: Partial<Observer<Set<transObj>>> | ((value: Set<transObj>) => void) | undefined) {
     const self = this;
-    return this.trans
-      .pipe(
-        filter((set) => set.size === 0),
-        map(() => self.value),
-      )
+    const pipes = [
+      filter((set: Set<transObj>) => set.size === 0),
+      map(() => self.value)
+    ];
+
+    if (!this.fast) {
+      pipes.push(distinctUntilChanged((a: any, b: any) => {
+        if (a === b) {
+          return true;
+        }
+        try {
+          return JSON.stringify(a) === JSON.stringify(b);
+        } catch (_er) {
+          return false;
+        }
+      }))
+    }
+    // @ts-ignore
+    return this.trans.pipe(...pipes)
       .subscribe(listener);
   }
 
