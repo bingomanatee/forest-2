@@ -26,8 +26,7 @@ export class Forest {
           }, self.lastTransId) as number;
         }
       },
-      error() {
-      },
+      error() {},
     });
   }
 
@@ -36,26 +35,24 @@ export class Forest {
 
   subscribe(listener: Partial<Observer<Set<transObj>>> | ((value: Set<transObj>) => void) | undefined) {
     const self = this;
-    const pipes = [
-      filter((set: Set<transObj>) => set.size === 0),
-      map(() => self.value)
-    ];
+    const pipes = [filter((set: Set<transObj>) => set.size === 0), map(() => self.value)];
 
     if (!this.fast) {
-      pipes.push(distinctUntilChanged((a: any, b: any) => {
-        if (a === b) {
-          return true;
-        }
-        try {
-          return JSON.stringify(a) === JSON.stringify(b);
-        } catch (_er) {
-          return false;
-        }
-      }))
+      pipes.push(
+        distinctUntilChanged((a: any, b: any) => {
+          if (a === b) {
+            return true;
+          }
+          try {
+            return JSON.stringify(a) === JSON.stringify(b);
+          } catch (_er) {
+            return false;
+          }
+        }),
+      );
     }
     // @ts-ignore
-    return this.trans.pipe(...pipes)
-      .subscribe(listener);
+    return this.trans.pipe(...pipes).subscribe(listener);
   }
 
   public leaves = new Map<string, leafI>();
