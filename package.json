@@ -1,6 +1,6 @@
 {
   "name": "@wonderlandlabs/forest",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "React State Machine",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -34,6 +34,7 @@
   "devDependencies": {
     "@types/jest": "29.2.4",
     "@types/lodash.clonedeep": "^4.5.0",
+    "@types/uuid": "^9.0.0",
     "@typescript-eslint/eslint-plugin": "5.46.0",
     "@typescript-eslint/parser": "5.46.0",
     "eslint": "8.29.0",
@@ -50,6 +51,7 @@
   "dependencies": {
     "@wonderlandlabs/collect": "^1.0.2",
     "@wonderlandlabs/transact": "^0.0.8",
-    "rxjs": "^7.8.0"
+    "rxjs": "^7.8.0",
+    "uuid": "^9.0.0"
   }
 }

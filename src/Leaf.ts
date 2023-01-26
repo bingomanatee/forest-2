@@ -1,6 +1,6 @@
 import { collectObj, generalObj } from '@wonderlandlabs/collect/lib/types';
 import { c } from '@wonderlandlabs/collect';
-import uuid from './helpers/uuid';
+import { v4 } from 'uuid';
 import { Forest } from './Forest';
 import { transObj } from '@wonderlandlabs/transact/dist/types';
 import {
@@ -26,7 +26,7 @@ const isLeaf = (leaf: any) => leaf && typeof leaf === 'object' && leaf.$isLeaf =
 
 export class Leaf implements leafI {
   constructor(forest: Forest, config: leafConfig | any) {
-    this.id = 'id' in config ? config.id : uuid.v4();
+    this.id = 'id' in config ? config.id : v4();
 
     if (!isLeafConfig(config)) {
       config = {
@@ -406,9 +406,9 @@ export class Leaf implements leafI {
       // value is a config for a NEW leaf
       if (!('id' in value)) {
         try {
-          value.id = `${this.id}:${key}:${uuid.v4()}`;
+          value.id = `${this.id}:${key}:${v4()}`;
         } catch {
-          value.id = `${this.id}:__${uuid.v4()}`;
+          value.id = `${this.id}:__${v4()}`;
         }
       }
       if (!('name' in value) && ['number', 'string'].includes(c(key).type)) {
