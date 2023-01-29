@@ -1,6 +1,6 @@
 import { transObj } from '@wonderlandlabs/transact/dist/types';
 import { collectObj, generalObj } from '@wonderlandlabs/collect/lib/types';
-import { MonoTypeOperatorFunction, Observable, Observer, Subscription } from 'rxjs'
+import { MonoTypeOperatorFunction, Observable, Observer, Subscription } from 'rxjs';
 
 export type keyName = string | number;
 export type leafName = string | number;
@@ -44,11 +44,12 @@ export type leafI = {
   set(key: any, value: any): leafI;
   get(key: any): any;
   recompute(): void;
-  getMeta(key: any) : any;
+  getMeta(key: any): any;
   setMeta(key: any, value: any, force?: boolean): leafI;
   observable: Observable<any>;
-  subscribe: (listener: Partial<Observer<Set<transObj>>> | ((value: Set<transObj>) => void) | undefined) => Subscription
-
+  subscribe: (
+    listener: Partial<Observer<Set<transObj>>> | ((value: Set<transObj>) => void) | undefined,
+  ) => Subscription;
 } & valuable;
 
 export type pending = { trans: transObj; store: collectObj };
@@ -82,4 +83,4 @@ export type leafConfig = {
   meta?: Map<any, any> | generalObj | collectObj;
 };
 
-export type mutators = (MonoTypeOperatorFunction<any>)[];
+export type mutators = MonoTypeOperatorFunction<any>[];

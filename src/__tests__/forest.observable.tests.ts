@@ -54,14 +54,14 @@ describe('Forest', () => {
         children: {
           tl: {
             $value: {},
-            children: { x: 0, y: 0 }
+            children: { x: 0, y: 0 },
           },
           br: {
             $value: {},
-            children: { x: 0, y: 0 }
-          }
-        }
-      })
+            children: { x: 0, y: 0 },
+          },
+        },
+      });
       const tlHistory: any[] = [];
 
       rect.child('tl')?.subscribe((value) => tlHistory.push(value));
@@ -70,19 +70,20 @@ describe('Forest', () => {
       expect(tlHistory).toEqual([{ x: 0, y: 0 }]);
 
       rect.value = { tl: { x: -10, y: -10 } };
-      expect(tlHistory).toEqual([{ x: 0, y: 0 }, { x: -10, y: -10 }]);
-      expect(rect.value).toEqual(
-        {
-          "br": {
-            "x": 10,
-            "y": 20,
-          },
-          "tl": {
-            "x": -10,
-            "y": -10,
-          },
-        });
+      expect(tlHistory).toEqual([
+        { x: 0, y: 0 },
+        { x: -10, y: -10 },
+      ]);
+      expect(rect.value).toEqual({
+        br: {
+          x: 10,
+          y: 20,
+        },
+        tl: {
+          x: -10,
+          y: -10,
+        },
+      });
     });
   });
-
 });

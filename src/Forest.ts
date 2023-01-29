@@ -5,11 +5,10 @@ import { c } from '@wonderlandlabs/collect';
 import { childDef, keyName, leafConfig, leafI, listenerType, selectorFn } from './types';
 import { distinctUntilChanged, map, Observable, Observer, share, Subscription } from 'rxjs';
 import { handlers } from './handlers';
-import { commitPipes } from './utils'
-import isEqual from 'lodash.isequal'
+import { commitPipes } from './utils';
+import isEqual from 'lodash.isequal';
 
 export class Forest {
-
   constructor(rootConfig: leafConfig) {
     this.debug = !!rootConfig.debug;
     this.root = new Leaf(this, { id: 'root', ...rootConfig });
@@ -32,13 +31,12 @@ export class Forest {
           }, self.lastTransId) as number;
         }
       },
-      error() {
-      },
+      error() {},
     });
   }
 
   public debug = false;
-  get fast () {
+  get fast() {
     return this.root.fast;
   }
   private _commitsObservable?: Observable<any>;
@@ -70,24 +68,26 @@ export class Forest {
       return this.subscribe({
         next: listener,
         error(err) {
-          console.log('--- fatal error in forest:', err)
-        }
-      })
+          console.log('--- fatal error in forest:', err);
+        },
+      });
     }
     return this.observable.subscribe(listener);
   }
 
-  select(listener: listenerType, selector: selectorFn) : Subscription {
+  select(listener: listenerType, selector: selectorFn): Subscription {
     if (typeof listener === 'function') {
-      return this.select({
-        next: listener,
-        error(err) {
-          console.log('--- fatal error in forest:', err)
-        }
-      }, selector);
+      return this.select(
+        {
+          next: listener,
+          error(err) {
+            console.log('--- fatal error in forest:', err);
+          },
+        },
+        selector,
+      );
     }
-    return this.observable.pipe(map(selector), distinctUntilChanged(isEqual))
-      .subscribe(listener);
+    return this.observable.pipe(map(selector), distinctUntilChanged(isEqual)).subscribe(listener);
   }
 
   public leaves = new Map<string, leafI>();

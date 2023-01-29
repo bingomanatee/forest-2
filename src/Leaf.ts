@@ -9,8 +9,10 @@ import {
   leafConfig,
   leafDoObj,
   leafI,
-  leafName, listenerType,
-  pending, selectorFn,
+  leafName,
+  listenerType,
+  pending,
+  selectorFn,
   testFn,
   valueCache,
   valueFilterFn,
@@ -18,8 +20,8 @@ import {
 import { LeafChild } from './LeafChild';
 import produce, { enableMapSet } from 'immer';
 import isEqual from 'lodash.isequal';
-import { distinct, distinctUntilChanged, map, Observable, Observer, share, Subscription } from 'rxjs'
-import { commitPipes } from './utils'
+import { distinct, distinctUntilChanged, map, Observable, Observer, share, Subscription } from 'rxjs';
+import { commitPipes } from './utils';
 
 enableMapSet();
 
@@ -84,35 +86,36 @@ export class Leaf implements leafI {
   get observable() {
     if (!this._observable) {
       //@ts-ignore
-      this._observable = this.forest.trans.pipe(...commitPipes(this))
+      this._observable = this.forest.trans.pipe(...commitPipes(this));
     }
-    return this._observable
+    return this._observable;
   }
 
   subscribe(listener: Partial<Observer<Set<transObj>>> | ((value: Set<transObj>) => void) | undefined): Subscription {
     if (typeof listener === 'function') {
       return this.subscribe({
-        next: listener, error(err) {
-          console.log('--- fatal error in forest:',
-            err
-          )
-        }
-      })
+        next: listener,
+        error(err) {
+          console.log('--- fatal error in forest:', err);
+        },
+      });
     }
     return this.observable.subscribe(listener);
   }
 
-  select(listener: listenerType, selector: selectorFn) : Subscription {
+  select(listener: listenerType, selector: selectorFn): Subscription {
     if (typeof listener === 'function') {
-      return this.select({
-        next: listener,
-        error(err) {
-          console.log('--- fatal error in forest:', err)
-        }
-      }, selector);
+      return this.select(
+        {
+          next: listener,
+          error(err) {
+            console.log('--- fatal error in forest:', err);
+          },
+        },
+        selector,
+      );
     }
-    return this.observable.pipe(map(selector), distinctUntilChanged(isEqual))
-      .subscribe(listener);
+    return this.observable.pipe(map(selector), distinctUntilChanged(isEqual)).subscribe(listener);
   }
 
   // --------------- ACTIONS -------------------
@@ -637,7 +640,7 @@ export class Leaf implements leafI {
       parentId: this.parentId,
       pendings: this._pendingSummary,
       _immerValue: this._valueImmer,
-      hasChildren: this.hasChildren
+      hasChildren: this.hasChildren,
     };
   }
 }

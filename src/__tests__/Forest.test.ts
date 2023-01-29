@@ -305,7 +305,7 @@ describe('Forest', () => {
   describe('meta', () => {
     const foo = Symbol('foo');
 
-    const makeFooForest = () => new Forest({$value: {x: 1, y: 1}, meta: {foo}});
+    const makeFooForest = () => new Forest({ $value: { x: 1, y: 1 }, meta: { foo } });
 
     it('should have foo', () => {
       const fooForest = makeFooForest();
