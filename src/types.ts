@@ -39,6 +39,7 @@ export type leafI = {
   type: string;
   firstType: string;
   family: string;
+  fast: boolean;
   do: leafFnObj;
   set(key: any, value: any): leafI;
   get(key: any): any;

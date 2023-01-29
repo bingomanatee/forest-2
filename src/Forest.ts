@@ -12,7 +12,6 @@ export class Forest {
 
   constructor(rootConfig: leafConfig) {
     this.debug = !!rootConfig.debug;
-    this.fast = !!rootConfig.fast;
     this.root = new Leaf(this, { id: 'root', ...rootConfig });
     this.addLeaf(this.root);
     this.trans = new TransactionSet(handlers(this));
@@ -39,7 +38,9 @@ export class Forest {
   }
 
   public debug = false;
-  private readonly fast: boolean;
+  get fast () {
+    return this.root.fast;
+  }
   private _commitsObservable?: Observable<any>;
 
   /*

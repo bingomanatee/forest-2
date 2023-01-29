@@ -57,6 +57,7 @@ export class Leaf implements leafI {
     if (lcConfig.meta) {
       c(lcConfig.meta).forEach((value, key) => this.setMeta(key, value));
     }
+    this.fast = !!lcConfig.fast;
     this._initDo(config);
     this.originalStore = this.store.clone(true);
   }
@@ -64,6 +65,7 @@ export class Leaf implements leafI {
   public id: string;
   public readonly $isLeaf = LEAF_TYPE;
   private readonly forest: Forest;
+  public fast = false;
 
   private _test?: testFn | undefined;
   public get test() {
