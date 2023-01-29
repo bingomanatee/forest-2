@@ -75,7 +75,6 @@ describe('Forest', () => {
         const point = makePoint(10, 0, -20);
         const child = point.child('x');
         child?.do.double();
-
         expect(point.value).toEqual({ x: 20, y: 0, z: -20 });
       });
     });

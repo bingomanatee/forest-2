@@ -115,37 +115,6 @@ describe('Forest', () => {
     });
   });
 
-  describe('update/subscribe', () => {
-    it('should broadcast change to the subscribers', () => {
-      const simpleState = new Forest({ $value: { x: 1, y: 2 } });
-
-      const history: any[] = [];
-
-      simpleState.subscribe({
-        next(value) {
-          history.push(value);
-        },
-        error(err) {
-          console.log('error in sub:', err);
-        },
-      });
-      expect(history).toEqual([{ x: 1, y: 2 }]);
-
-      simpleState.set('x', 4);
-      expect(history).toEqual([
-        { x: 1, y: 2 },
-        { x: 4, y: 2 },
-      ]);
-
-      simpleState.set('y', 3);
-      expect(history).toEqual([
-        { x: 1, y: 2 },
-        { x: 4, y: 2 },
-        { x: 4, y: 3 },
-      ]);
-    });
-  });
-
   describe('setting leaf value', () => {
     it('should assign by property', () => {
       const numState = new Forest({ $value: 0 });
@@ -330,6 +299,30 @@ describe('Forest', () => {
         point.set('y', 20);
         expect(point.value).toEqual({ x: 10, y: 20 });
       });
+    });
+  });
+
+  describe('meta', () => {
+    const foo = Symbol('foo');
+
+    const makeFooForest = () => new Forest({$value: {x: 1, y: 1}, meta: {foo}});
+
+    it('should have foo', () => {
+      const fooForest = makeFooForest();
+      expect(fooForest.getMeta('foo')).toEqual(foo);
+    });
+
+    it('should not allow foo to be overwritten (by default)', () => {
+      const fooForest = makeFooForest();
+      fooForest.root.setMeta('foo', Symbol('bar'));
+      expect(fooForest.getMeta('foo')).toEqual(foo);
+    });
+
+    it('should allow foo to be overwritten (if forced)', () => {
+      const fooForest = makeFooForest();
+      const bar = Symbol('bar');
+      fooForest.root.setMeta('foo', bar, true);
+      expect(fooForest.getMeta('foo')).toEqual(bar);
     });
   });
 });

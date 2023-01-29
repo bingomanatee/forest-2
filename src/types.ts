@@ -1,10 +1,20 @@
 import { transObj } from '@wonderlandlabs/transact/dist/types';
-import { collectObj, filterFn, generalObj } from '@wonderlandlabs/collect/lib/types';
+import { collectObj, generalObj } from '@wonderlandlabs/collect/lib/types';
+import { MonoTypeOperatorFunction, Observable, Observer, Subscription } from 'rxjs'
+
 export type keyName = string | number;
 export type leafName = string | number;
+
+export interface valuable {
+  value: any;
+  fast?: boolean;
+}
+
+export type listenerType = Partial<Observer<Set<transObj>>> | ((value: Set<transObj>) => void) | undefined;
+export type selectorFn = (value: any) => any;
+
 export type leafI = {
   id: string;
-  value: any;
   $isLeaf: symbol;
   getLeaf(id: string): leafI | undefined;
   purgePending(trans?: transObj | undefined, fromParent?: boolean): void;
@@ -33,7 +43,12 @@ export type leafI = {
   set(key: any, value: any): leafI;
   get(key: any): any;
   recompute(): void;
-};
+  getMeta(key: any) : any;
+  setMeta(key: any, value: any, force?: boolean): leafI;
+  observable: Observable<any>;
+  subscribe: (listener: Partial<Observer<Set<transObj>>> | ((value: Set<transObj>) => void) | undefined) => Subscription
+
+} & valuable;
 
 export type pending = { trans: transObj; store: collectObj };
 export type childDef = { child: leafI; key: any; leafId: string };
@@ -63,4 +78,7 @@ export type leafConfig = {
   original?: boolean;
   debug?: boolean;
   fast?: boolean;
+  meta?: Map<any, any> | generalObj | collectObj;
 };
+
+export type mutators = (MonoTypeOperatorFunction<any>)[];

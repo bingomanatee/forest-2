@@ -2,17 +2,24 @@ import { TransactionSet } from '@wonderlandlabs/transact';
 import { Leaf } from './Leaf';
 import { transObj } from '@wonderlandlabs/transact/dist/types';
 import { c } from '@wonderlandlabs/collect';
-import { keyName, leafConfig, leafI } from './types';
-import { distinctUntilChanged, filter, map, Observer } from 'rxjs';
+import { childDef, keyName, leafConfig, leafI, listenerType, selectorFn } from './types';
+import { distinctUntilChanged, map, Observable, Observer, share, Subscription } from 'rxjs';
 import { handlers } from './handlers';
+import { commitPipes } from './utils'
+import isEqual from 'lodash.isequal'
 
 export class Forest {
+
   constructor(rootConfig: leafConfig) {
     this.debug = !!rootConfig.debug;
     this.fast = !!rootConfig.fast;
     this.root = new Leaf(this, { id: 'root', ...rootConfig });
     this.addLeaf(this.root);
     this.trans = new TransactionSet(handlers(this));
+    this._updateTransId();
+  }
+
+  private _updateTransId() {
     const self = this;
     this.trans.subscribe({
       next(transSet) {
@@ -26,33 +33,60 @@ export class Forest {
           }, self.lastTransId) as number;
         }
       },
-      error() {},
+      error() {
+      },
     });
   }
 
   public debug = false;
   private readonly fast: boolean;
+  private _commitsObservable?: Observable<any>;
 
-  subscribe(listener: Partial<Observer<Set<transObj>>> | ((value: Set<transObj>) => void) | undefined) {
-    const self = this;
-    const pipes = [filter((set: Set<transObj>) => set.size === 0), map(() => self.value)];
-
-    if (!this.fast) {
-      pipes.push(
-        distinctUntilChanged((a: any, b: any) => {
-          if (a === b) {
-            return true;
-          }
-          try {
-            return JSON.stringify(a) === JSON.stringify(b);
-          } catch (_er) {
-            return false;
-          }
-        }),
-      );
+  /*
+   this emits the root leaf's value whenever the transacrtions empty.
+   */
+  get commitsObservable(): Observable<any> {
+    if (!this._commitsObservable) {
+      //@ts-ignore
+      this._commitsObservable = this.trans.pipe(...commitPipes(this));
     }
-    // @ts-ignore
-    return this.trans.pipe(...pipes).subscribe(listener);
+    return this._commitsObservable;
+  }
+
+  private _observable?: Observable<any>;
+  public get observable(): Observable<any> {
+    if (this.fast) {
+      return this.commitsObservable;
+    }
+    if (!this._observable) {
+      this._observable = this.commitsObservable.pipe(distinctUntilChanged(), share());
+    }
+    return this._observable;
+  }
+
+  subscribe(listener: listenerType): Subscription {
+    if (typeof listener === 'function') {
+      return this.subscribe({
+        next: listener,
+        error(err) {
+          console.log('--- fatal error in forest:', err)
+        }
+      })
+    }
+    return this.observable.subscribe(listener);
+  }
+
+  select(listener: listenerType, selector: selectorFn) : Subscription {
+    if (typeof listener === 'function') {
+      return this.select({
+        next: listener,
+        error(err) {
+          console.log('--- fatal error in forest:', err)
+        }
+      }, selector);
+    }
+    return this.observable.pipe(map(selector), distinctUntilChanged(isEqual))
+      .subscribe(listener);
   }
 
   public leaves = new Map<string, leafI>();
@@ -120,12 +154,20 @@ export class Forest {
     return this.root.child(key);
   }
 
+  children(): childDef[] {
+    return this.root.children;
+  }
+
   get value() {
     return this.root?.value;
   }
 
   set value(newValue) {
     this.root.value = newValue;
+  }
+
+  getMeta(key: any) {
+    return this.root.getMeta(key);
   }
 
   set(key: any, value: any): leafI {
@@ -135,33 +177,5 @@ export class Forest {
 
   get store() {
     return this.root.store;
-  }
-
-  // --------------- debugging hooks
-
-  broadcastTrans() {
-    const self = this;
-    this.trans.subscribe({
-      next(list) {
-        console.log(
-          'transactions:',
-          Array.from(list).map(({ id, params, action }) => [`${id}(${action})`, params]),
-          'value is ',
-          self.value,
-        );
-      },
-      error(err) {
-        console.log('error in trans: ', err);
-      },
-    });
-
-    this.subscribe({
-      next(value) {
-        console.log('bt value = ', value);
-      },
-      error(err) {
-        console.log('error in sub: ', err);
-      },
-    });
   }
 }

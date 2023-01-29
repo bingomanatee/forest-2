@@ -9,14 +9,19 @@ import {
   leafConfig,
   leafDoObj,
   leafI,
-  leafName,
-  pending,
-  testDef,
+  leafName, listenerType,
+  pending, selectorFn,
   testFn,
   valueCache,
   valueFilterFn,
 } from './types';
 import { LeafChild } from './LeafChild';
+import produce, { enableMapSet } from 'immer';
+import isEqual from 'lodash.isequal';
+import { distinct, distinctUntilChanged, map, Observable, Observer, share, Subscription } from 'rxjs'
+import { commitPipes } from './utils'
+
+enableMapSet();
 
 export const LEAF_TYPE = Symbol('LEAF_TYPE');
 export const EMPTY_DO = Object.freeze({});
@@ -43,10 +48,14 @@ export class Leaf implements leafI {
     this.filter = lcConfig.filter;
     this.firstType = this.type;
     this._initTest(lcConfig);
+
     if (config.children) {
       c(config.children).forEach((def, key: string) => {
         this.addChild(def, key);
       });
+    }
+    if (lcConfig.meta) {
+      c(lcConfig.meta).forEach((value, key) => this.setMeta(key, value));
     }
     this._initDo(config);
     this.originalStore = this.store.clone(true);
@@ -64,7 +73,47 @@ export class Leaf implements leafI {
   public readonly filter?: valueFilterFn;
   public parentId?: string; // links upwards to its parent; changeable
   name?: leafName;
+
   public readonly originalStore: collectObj;
+
+  // ---------------- subscription
+
+  _observable?: Observable<any>;
+  get observable() {
+    if (!this._observable) {
+      //@ts-ignore
+      this._observable = this.forest.trans.pipe(...commitPipes(this))
+    }
+    return this._observable
+  }
+
+  subscribe(listener: Partial<Observer<Set<transObj>>> | ((value: Set<transObj>) => void) | undefined): Subscription {
+    if (typeof listener === 'function') {
+      return this.subscribe({
+        next: listener, error(err) {
+          console.log('--- fatal error in forest:',
+            err
+          )
+        }
+      })
+    }
+    return this.observable.subscribe(listener);
+  }
+
+  select(listener: listenerType, selector: selectorFn) : Subscription {
+    if (typeof listener === 'function') {
+      return this.select({
+        next: listener,
+        error(err) {
+          console.log('--- fatal error in forest:', err)
+        }
+      }, selector);
+    }
+    return this.observable.pipe(map(selector), distinctUntilChanged(isEqual))
+      .subscribe(listener);
+  }
+
+  // --------------- ACTIONS -------------------
   do: leafDoObj = EMPTY_DO;
 
   /** --------------------- _initDo -------------------------
@@ -295,8 +344,22 @@ export class Leaf implements leafI {
     return this.realStore;
   }
 
+  _localimmer?: any;
+
   get localValue(): any {
-    return this.store.value;
+    if (this.family !== 'container') {
+      return this.store.value;
+    }
+
+    const copy = produce(this.store.value, (draft: any) => {
+      return draft;
+    });
+
+    if (isEqual(copy, this._localimmer)) {
+      return this._localimmer;
+    }
+    this._localimmer = copy;
+    return copy;
   }
 
   /* -------------- value passthroughs ------------ */
@@ -308,21 +371,31 @@ export class Leaf implements leafI {
     this.parent?.recompute();
   }
 
+  _valueImmer?: any;
+
   get value() {
     if (!this.hasChildren) {
       return this.localValue;
     }
-    // caching is only used to optimize the blending of child values.
-    if (this._valueCache?.lastTransId === this.forest.lastTransId) {
-      return this._valueCache.value;
+    // // caching is only used to optimize the blending of child values.
+    // if (this._valueCache?.lastTransId === this.forest.lastTransId) {
+    //   return this._valueCache.value;
+    // }
+
+    const value = produce(this.localValue, (draft: any) => {
+      const store = c(draft).clone();
+      this.children.forEach(({ key, child }) => {
+        store.set(key, child.value);
+      });
+      return store.value;
+    });
+
+    if (isEqual(value, this._valueImmer)) {
+      return this._valueImmer;
     }
 
-    const store = this.realStore.clone();
-    this.children.forEach(({ key, child }) => {
-      store.set(key, child.value);
-    });
-    this._valueCache = { value: store.value, lastTransId: this.forest.lastTransId };
-    return store.value;
+    this._valueImmer = value;
+    return value;
   }
 
   set value(newValue: any) {
@@ -511,11 +584,35 @@ export class Leaf implements leafI {
     }
   }
 
-  /* ------------------ actions
-   */
-
   change(value: any) {
     this.forest.dot('updateLeafValue', this.id, value);
+  }
+
+  // ------------------- META --------------------
+
+  _meta?: collectObj;
+
+  getMeta(key: any) {
+    if (!this.hasMeta(key)) {
+      return undefined;
+    }
+    return this._meta?.get(key);
+  }
+
+  hasMeta(key: any) {
+    return this._meta ? this._meta.hasKey(key) : false;
+  }
+
+  setMeta(key: any, value: any, force = false) {
+    if (!force && this.hasMeta(key)) {
+      console.warn('meta cannot be overwritten without "forcing" it (third parameter = true)');
+      return this;
+    }
+    if (!this._meta) {
+      this._meta = c(new Map());
+    }
+    this._meta.set(key, value);
+    return this;
   }
 
   // ------------------- utility -------------------
@@ -537,6 +634,8 @@ export class Leaf implements leafI {
       type: this.store.type,
       parentId: this.parentId,
       pendings: this._pendingSummary,
+      _immerValue: this._valueImmer,
+      hasChildren: this.hasChildren
     };
   }
 }

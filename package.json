@@ -34,6 +34,7 @@
   "devDependencies": {
     "@types/jest": "29.2.4",
     "@types/lodash.clonedeep": "^4.5.0",
+    "@types/lodash.isequal": "^4.5.6",
     "@types/uuid": "^9.0.0",
     "@typescript-eslint/eslint-plugin": "5.46.0",
     "@typescript-eslint/parser": "5.46.0",
@@ -51,6 +52,8 @@
   "dependencies": {
     "@wonderlandlabs/collect": "^1.0.2",
     "@wonderlandlabs/transact": "^0.0.8",
+    "immer": "^9.0.19",
+    "lodash.isequal": "^4.5.0",
     "rxjs": "^7.8.0",
     "uuid": "^9.0.0"
   }
