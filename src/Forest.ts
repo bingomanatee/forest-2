@@ -6,7 +6,6 @@ import { childDef, keyName, leafConfig, leafI, listenerType, selectorFn } from '
 import { distinctUntilChanged, map, Observable, Observer, share, Subscription } from 'rxjs';
 import { handlers } from './handlers';
 import { commitPipes } from './utils';
-import isEqual from 'lodash.isequal';
 
 export class Forest {
   constructor(rootConfig: leafConfig) {
@@ -87,7 +86,7 @@ export class Forest {
         selector,
       );
     }
-    return this.observable.pipe(map(selector), distinctUntilChanged(isEqual)).subscribe(listener);
+    return this.observable.pipe(map(selector), distinctUntilChanged()).subscribe(listener);
   }
 
   public leaves = new Map<string, leafI>();

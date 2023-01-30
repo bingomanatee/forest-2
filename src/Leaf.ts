@@ -20,7 +20,7 @@ import {
 import { LeafChild } from './LeafChild';
 import produce, { enableMapSet } from 'immer';
 import isEqual from 'lodash.isequal';
-import { distinct, distinctUntilChanged, map, Observable, Observer, share, Subscription } from 'rxjs';
+import { distinctUntilChanged, map, Observable, Observer, Subscription } from 'rxjs';
 import { commitPipes } from './utils';
 
 enableMapSet();
@@ -30,6 +30,14 @@ export const EMPTY_DO = Object.freeze({});
 
 const isLeafConfig = (config: any) => config && typeof config === 'object' && '$value' in config;
 const isLeaf = (leaf: any) => leaf && typeof leaf === 'object' && leaf.$isLeaf === LEAF_TYPE;
+
+const setterName = (key: any) => {
+  try {
+    return `set_${key}`;
+  } catch (error) {
+    return '';
+  }
+}
 
 export class Leaf implements leafI {
   constructor(forest: Forest, config: leafConfig | any) {
@@ -115,7 +123,7 @@ export class Leaf implements leafI {
         selector,
       );
     }
-    return this.observable.pipe(map(selector), distinctUntilChanged(isEqual)).subscribe(listener);
+    return this.observable.pipe(map(selector), distinctUntilChanged()).subscribe(listener);
   }
 
   // --------------- ACTIONS -------------------
@@ -148,10 +156,19 @@ export class Leaf implements leafI {
       });
     }
 
+    this.updateDoSetters(config.setKeys);
+    this.updateDo();
+  }
+
+  private get canHaveSetters(): boolean {
+    return this.type === 'object' || this.type === 'map';
+  }
+
+  updateDoSetters(setKeys?: any[]) {
     if (this.canHaveSetters) {
-      if (config.setKeys) {
+      if (setKeys) {
         // manually specify the setters you want.
-        config.setKeys.forEach((name) => this.addSet(name));
+        setKeys.forEach((name) => this.addSet(name));
       } else {
         this.store.keys
           .filter((name) => typeof name === 'string' || typeof name === 'number')
@@ -166,14 +183,9 @@ export class Leaf implements leafI {
         });
       }
     }
-    this.updateDo();
   }
 
-  private get canHaveSetters(): boolean {
-    return this.type === 'object' || this.type === 'map';
-  }
-
-  private updateDo() {
+  updateDo() {
     if (!this.canHaveSetters) {
       this.do = this.actions;
     } else {
@@ -221,14 +233,17 @@ export class Leaf implements leafI {
   }
 
   private addSet(name: string | number, fromDoInit = false) {
-    this.addAction(
-      `set_${name}`,
-      (leaf: leafI, value: any) => {
-        return leaf.set(name, value);
-      },
-      true,
-      fromDoInit,
-    );
+    const setter = `set_${name}`;
+    if (setter) {
+      this.addAction(
+        setter,
+        (leaf: leafI, value: any) => {
+          return leaf.set(name, value);
+        },
+        true,
+        fromDoInit,
+      );
+    }
   }
 
   // ------------------ validation --------------------
@@ -472,6 +487,27 @@ export class Leaf implements leafI {
     return childId ? this.getLeaf(childId) : undefined;
   }
 
+  removeChild(key: any) {
+    if (!this.hasChildren) {
+      return;
+    }
+    this.childKeys?.deleteKey(key);
+    this.value = this.store.clone().deleteKey(key);
+    const setName = setterName(key);
+    if (setName && setName in this.setters) {
+      delete this.setters[setName];
+      this.updateDo();
+    }
+  }
+
+  /**
+   * embeds a new Leaf as a child of this leaf.
+   * Also, registers the leaf with the forest's leaf collection.
+   *
+   * @param value {Leaf or leafConfig or (any leaf value)}
+   * @param key {any} what property in the current leaf will
+   *                  hold the value of the child leaf
+   */
   addChild(value: any, key: any) {
     if (!(this.store.family === 'container')) {
       throw new Error('cannot join child to a non-container leaf');
@@ -536,6 +572,10 @@ export class Leaf implements leafI {
     this.forest.markPending(this.id);
   }
 
+  /**
+   * This method writes any values in the current LOCAL value
+   * downwards to any named children.
+   */
   shareChildValues() {
     for (const { child, leafId, key } of this.children) {
       if (this.store.hasKey(key)) {
@@ -547,7 +587,7 @@ export class Leaf implements leafI {
     }
   }
 
-  purgePending(trans?: transObj | undefined, fromParent?: boolean) {
+  purgePending(trans?: transObj | undefined) {
     try {
       if (this.pendings) {
         if (trans) {
