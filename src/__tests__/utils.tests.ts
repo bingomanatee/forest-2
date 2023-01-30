@@ -1,5 +1,5 @@
 import { listenerFactory } from '../utils';
-import { Subject } from 'rxjs'
+import { Subject } from 'rxjs';
 
 describe('utils', () => {
   describe('listenerFactory', () => {
@@ -8,14 +8,14 @@ describe('utils', () => {
         const feedback: any[] = [];
         const next = (value: any) => {
           feedback.push({ next: value });
-        }
+        };
         const error = (err: any) => {
-          feedback.push({ error: err })
-        }
+          feedback.push({ error: err });
+        };
 
         const complete = () => {
           feedback.push('complete');
-        }
+        };
 
         const subject = new Subject();
 
@@ -27,15 +27,14 @@ describe('utils', () => {
         expect(feedback).toEqual([{ next: 'foo' }, { next: 'bar' }]);
         const err = new Error('oops');
         subject.error(err);
-        expect(feedback).toEqual([{ next: 'foo' },
-          { next: 'bar' }, { error: err }]);
+        expect(feedback).toEqual([{ next: 'foo' }, { next: 'bar' }, { error: err }]);
       });
 
       it('should accept incomplete params - no error listener', () => {
         const feedback: any[] = [];
         const next = (value: any) => {
           feedback.push({ next: value });
-        }
+        };
 
         const subject = new Subject();
 
@@ -48,43 +47,41 @@ describe('utils', () => {
         expect(feedback).toEqual([{ next: 'foo' }, { next: 'bar' }]);
         const err = new Error('oops');
         subject.error(err);
-        expect(feedback).toEqual([{ next: 'foo' },
-          { next: 'bar' }]);
+        expect(feedback).toEqual([{ next: 'foo' }, { next: 'bar' }]);
       });
-      it('should accept incomplete params - no listener',
-        () => {
-          const feedback: any[] = [];
-          const error = (value: any) => {
-            feedback.push({ error: value });
-          }
+      it('should accept incomplete params - no listener', () => {
+        const feedback: any[] = [];
+        const error = (value: any) => {
+          feedback.push({ error: value });
+        };
 
-          const subject = new Subject();
+        const subject = new Subject();
 
-          const listener = listenerFactory(undefined, error);
+        const listener = listenerFactory(undefined, error);
 
-          subject.subscribe(listener);
-          subject.next('foo');
-          expect(feedback).toEqual([]);
-          subject.next('bar');
-          expect(feedback).toEqual([]);
-          const err = new Error('oops');
-          subject.error(err);
-          expect(feedback).toEqual([{ error: err }]);
-        });
+        subject.subscribe(listener);
+        subject.next('foo');
+        expect(feedback).toEqual([]);
+        subject.next('bar');
+        expect(feedback).toEqual([]);
+        const err = new Error('oops');
+        subject.error(err);
+        expect(feedback).toEqual([{ error: err }]);
+      });
     });
     describe('object', () => {
       it('should pass valid listeners through', () => {
         const feedback: any[] = [];
         const next = (value: any) => {
           feedback.push({ next: value });
-        }
+        };
         const error = (err: any) => {
-          feedback.push({ error: err })
-        }
+          feedback.push({ error: err });
+        };
 
         const complete = () => {
           feedback.push('complete');
-        }
+        };
 
         const subject = new Subject();
 
@@ -96,15 +93,14 @@ describe('utils', () => {
         expect(feedback).toEqual([{ next: 'foo' }, { next: 'bar' }]);
         const err = new Error('oops');
         subject.error(err);
-        expect(feedback).toEqual([{ next: 'foo' },
-          { next: 'bar' }, { error: err }]);
+        expect(feedback).toEqual([{ next: 'foo' }, { next: 'bar' }, { error: err }]);
       });
 
       it('should accept incomplete params - no error listener', () => {
         const feedback: any[] = [];
         const next = (value: any) => {
           feedback.push({ next: value });
-        }
+        };
 
         const subject = new Subject();
 
@@ -117,29 +113,27 @@ describe('utils', () => {
         expect(feedback).toEqual([{ next: 'foo' }, { next: 'bar' }]);
         const err = new Error('oops');
         subject.error(err);
-        expect(feedback).toEqual([{ next: 'foo' },
-          { next: 'bar' }]);
+        expect(feedback).toEqual([{ next: 'foo' }, { next: 'bar' }]);
       });
-      it('should accept incomplete params - no listener',
-        () => {
-          const feedback: any[] = [];
-          const error = (value: any) => {
-            feedback.push({ error: value });
-          }
+      it('should accept incomplete params - no listener', () => {
+        const feedback: any[] = [];
+        const error = (value: any) => {
+          feedback.push({ error: value });
+        };
 
-          const subject = new Subject();
+        const subject = new Subject();
 
-          const listener = listenerFactory({ error });
+        const listener = listenerFactory({ error });
 
-          subject.subscribe(listener);
-          subject.next('foo');
-          expect(feedback).toEqual([]);
-          subject.next('bar');
-          expect(feedback).toEqual([]);
-          const err = new Error('oops');
-          subject.error(err);
-          expect(feedback).toEqual([{ error: err }]);
-        });
+        subject.subscribe(listener);
+        subject.next('foo');
+        expect(feedback).toEqual([]);
+        subject.next('bar');
+        expect(feedback).toEqual([]);
+        const err = new Error('oops');
+        subject.error(err);
+        expect(feedback).toEqual([{ error: err }]);
+      });
     });
   });
   // @TODO: test error trapping

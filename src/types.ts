@@ -4,7 +4,7 @@ import { MonoTypeOperatorFunction, Observable, Observer, Subscription } from 'rx
 
 // -------------- general things
 
-export type pojo = {[key: string | symbol]: any};
+export type pojo = { [key: string | symbol]: any };
 export type genFn = (...args: any[]) => any;
 // ------------- Leaf related types
 
@@ -33,7 +33,6 @@ export type leafI = {
   test?(value: any): any;
   validate(): void;
 
-
   childKeys?: collectObj; // key = value to replace in leaf, value == string (leafId)
   child(key: keyName): leafI | undefined;
   parent?: leafI;
@@ -41,7 +40,7 @@ export type leafI = {
   parentId?: string;
   shareChildValues(): void;
   addChild(key: any, value: any): void;
-  removeChild(key: any) : void;
+  removeChild(key: any): void;
 
   toJSON(): generalObj;
   type: string;
@@ -105,7 +104,7 @@ export type voidFn = () => void;
 export type listenerFn = (next: any) => void;
 export type mutators = MonoTypeOperatorFunction<any>[];
 export type listenerObj = {
-  next?: listenerFn,
-  error?: listenerFn,
+  next?: listenerFn;
+  error?: listenerFn;
   complete?: voidFn;
-}
+};

@@ -37,7 +37,7 @@ const setterName = (key: any) => {
   } catch (error) {
     return '';
   }
-}
+};
 
 export class Leaf implements leafI {
   constructor(forest: Forest, config: leafConfig | any) {

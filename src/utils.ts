@@ -1,8 +1,7 @@
 import { distinctUntilChanged, filter, map, share } from 'rxjs';
 import { transObj } from '@wonderlandlabs/transact/dist/types';
 import { pojo, mutators, listenerFn, valuable, voidFn, listenerType, listenerObj } from './types';
-import { c } from '@wonderlandlabs/collect'
-
+import { c } from '@wonderlandlabs/collect';
 
 /**
  * Desperately tries to repress any error thrown by function;
@@ -16,11 +15,11 @@ export const safeFn = (fn: any, onError = 'error') => {
     try {
       return fn(...args);
     } catch (error) {
-      console.log(onError, {args, fn});
+      console.log(onError, { args, fn });
       return undefined;
     }
-  }
-}
+  };
+};
 
 // ----------- RXJS utilities
 
@@ -29,11 +28,9 @@ export const commitPipes = (target: valuable): mutators =>
     ? [filter((set: Set<transObj>) => set.size === 0), map(() => target.value), share()]
     : [filter((set: Set<transObj>) => set.size === 0), map(() => target.value), distinctUntilChanged(), share()];
 
-export function noopListener() {
-}
+export function noopListener() {}
 
-export function noopVoidListener() {
-}
+export function noopVoidListener() {}
 
 /**
  * returns a fully formed observer with hooks for each event.
@@ -43,9 +40,11 @@ export function noopVoidListener() {
  * @param errorListener
  * @param completeListener
  */
-export const listenerFactory = (listener: listenerFn | pojo = noopListener,
-                                errorListener: listenerFn = noopListener,
-                                completeListener: voidFn = noopVoidListener): listenerObj => {
+export const listenerFactory = (
+  listener: listenerFn | pojo = noopListener,
+  errorListener: listenerFn = noopListener,
+  completeListener: voidFn = noopVoidListener,
+): listenerObj => {
   let out: listenerType;
   switch (c(listener).type) {
     case 'object':
@@ -60,27 +59,25 @@ export const listenerFactory = (listener: listenerFn | pojo = noopListener,
       out = listenerFactory();
   }
   return out;
-}
+};
 
-function listenerFactoryFn(listener: listenerFn,
-                           errorListener: listenerFn,
-                           completeListener: voidFn): listenerObj {
-
+function listenerFactoryFn(listener: listenerFn, errorListener: listenerFn, completeListener: voidFn): listenerObj {
   return {
     next: safeFn(listener, 'listener error'),
     error: safeFn(errorListener, 'error handler error'),
-    complete: safeFn(completeListener, 'complete handler throws error')
-  }
+    complete: safeFn(completeListener, 'complete handler throws error'),
+  };
 }
 
 const listenerObjFactory = (listener: pojo): listenerObj => {
-  const list = c(listener).clone()
+  const list = c(listener)
+    .clone()
     .map((fn) => {
       if (typeof fn !== 'function') {
         return undefined;
       }
       return fn;
-    })
+    });
   const { next = noopListener, error = noopListener, complete = noopVoidListener }: listenerObj = list.value;
   return listenerFactoryFn(next, error, complete);
-}
+};
