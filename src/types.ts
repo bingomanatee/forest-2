@@ -32,6 +32,7 @@ export type leafI = {
   filter?: valueFilterFn;
   test?(value: any): any;
   validate(): void;
+  fixedSetters?: any[] | null;
 
   childKeys?: collectObj; // key = value to replace in leaf, value == string (leafId)
   child(key: keyName): leafI | undefined;

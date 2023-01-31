@@ -128,6 +128,15 @@ export class Leaf implements leafI {
 
   // --------------- ACTIONS -------------------
   do: leafDoObj = EMPTY_DO;
+  private _fixedSetters: any[] | null = null;
+  get fixedSetters(): any[] | null {
+    return this._fixedSetters
+  }
+
+  set fixedSetters(value: any[] | null) {
+    this._fixedSetters = value;
+    this.updateDo(true);
+  }
 
   /** --------------------- _initDo -------------------------
    * compiles a set of actions based on the config file, and
@@ -156,22 +165,26 @@ export class Leaf implements leafI {
       });
     }
 
-    this.updateDoSetters(config.setKeys);
-    this.updateDo();
+    if (config.setKeys) {
+      this.fixedSetters = config.setKeys;
+    } else {
+      // setting fixedSetters will trigger updateDo automatically
+      this.updateDo(true);
+    }
   }
 
   private get canHaveSetters(): boolean {
     return this.type === 'object' || this.type === 'map';
   }
 
-  updateDoSetters(setKeys?: any[]) {
+  updateDoSetters() {
     if (this.canHaveSetters) {
-      if (setKeys) {
+      if (this.fixedSetters) {
         // manually specify the setters you want.
-        setKeys.forEach((name) => this.addSet(name));
+        this.fixedSetters.forEach((name) => this.addSet(name));
       } else {
         this.store.keys
-          .filter((name) => typeof name === 'string' || typeof name === 'number')
+          .filter((name) => typeof name === 'string')
           .forEach((name: string | number) => {
             this.addSet(name, true);
           });
@@ -185,7 +198,10 @@ export class Leaf implements leafI {
     }
   }
 
-  updateDo() {
+  updateDo(updateSetters = false) {
+    if (updateSetters) {
+      this.updateDoSetters()
+    }
     if (!this.canHaveSetters) {
       this.do = this.actions;
     } else {
@@ -204,11 +220,14 @@ export class Leaf implements leafI {
    * @param setter {boolean} whether the function is a setter; and therefore, it may be overridden by a function OF THE SAME NAME that is NOT a setter.
    * @param fromDoInit {boolean} whether the function is part of a loop in fromInit; if not, it reconstitutes the do property immediately .
    */
-  addAction(name: string | number, fn: (...args: any[]) => any, setter = false, fromDoInit = false) {
+  addAction(name: any, fn: (...args: any[]) => any, setter = false, fromDoInit = false) {
+    if (! (name && typeof name === 'string')) {
+      return;
+    }
+    name = name.trim();
+    if (!name) return;
     const self = this;
-    const handler = (...args: any[]) => {
-      return fn(self, ...args);
-    };
+    const handler = (...args: any[]) => fn(self, ...args);
     try {
       if (setter) {
         this.setters[name] = (...args) => {
@@ -232,14 +251,17 @@ export class Leaf implements leafI {
     }
   }
 
-  private addSet(name: string | number, fromDoInit = false) {
+  private addSet(name: any, fromDoInit = false) {
+    if (! (name && typeof name === 'string')) {
+      return;
+    }
+    name = name.trim(); // @TODO: better filtering
+    if (!name) return;
     const setter = `set_${name}`;
     if (setter) {
       this.addAction(
         setter,
-        (leaf: leafI, value: any) => {
-          return leaf.set(name, value);
-        },
+        (leaf: leafI, value: any) => leaf.set(name, value),
         true,
         fromDoInit,
       );
