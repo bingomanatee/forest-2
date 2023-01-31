@@ -67,7 +67,6 @@ export class Forest {
   }
 
   select(listener: any, selector: selectorFn): Subscription {
-
     return this.root.select(listener, selector);
   }
 

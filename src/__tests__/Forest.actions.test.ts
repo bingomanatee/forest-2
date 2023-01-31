@@ -214,20 +214,20 @@ describe('Forest', () => {
 
       describe('with fixedSetters', () => {
         it('should ignore the existing keys if fixedSetters are provided', () => {
-          const wierdPoint = new Forest({$value: {x: 0, y: 0, z: 0}, fixedSetters: ['a', 'b', 'c']});
+          const wierdPoint = new Forest({ $value: { x: 0, y: 0, z: 0 }, fixedSetters: ['a', 'b', 'c'] });
 
           expect(wierdPoint.do.set_x).toBeUndefined();
           expect(wierdPoint.do.set_a).toBeDefined();
 
           wierdPoint.do.set_a(10);
-          expect(wierdPoint.value).toEqual({x: 0, y: 0, z: 0, a: 10});
+          expect(wierdPoint.value).toEqual({ x: 0, y: 0, z: 0, a: 10 });
 
           wierdPoint.root.updateDo(true);
 
           expect(wierdPoint.do.set_x).toBeUndefined();
           expect(wierdPoint.do.set_a).toBeDefined();
-        })
-      })
+        });
+      });
     });
 
     describe('documentation', () => {

@@ -52,7 +52,7 @@ export type leafI = {
   addAction(name: string, action: leafDoFn): void;
   updateDoSetters(): void;
   fixedSetters: any[] | null;
-  updateDo(updateSetters?: boolean) : void;
+  updateDo(updateSetters?: boolean): void;
   set(key: any, value: any): leafI;
   get(key: any): any;
   recompute(): void;
@@ -60,9 +60,7 @@ export type leafI = {
   setMeta(key: any, value: any, force?: boolean): leafI;
 
   observable: Observable<any>;
-  subscribe: (
-    listener: any,
-  ) => Subscription;
+  subscribe: (listener: any) => Subscription;
   select: (listener: any, selector: selectorFn) => Subscription;
 } & valuable;
 export type testFn = (value: any, leaf: leafI) => any;
