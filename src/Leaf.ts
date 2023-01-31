@@ -21,7 +21,7 @@ import { LeafChild } from './LeafChild';
 import produce, { enableMapSet } from 'immer';
 import isEqual from 'lodash.isequal';
 import { distinctUntilChanged, map, Observable, Observer, Subscription } from 'rxjs';
-import { commitPipes } from './utils';
+import { commitPipes, listenerFactory } from './utils';
 
 enableMapSet();
 
@@ -99,31 +99,15 @@ export class Leaf implements leafI {
     return this._observable;
   }
 
-  subscribe(listener: Partial<Observer<Set<transObj>>> | ((value: Set<transObj>) => void) | undefined): Subscription {
-    if (typeof listener === 'function') {
-      return this.subscribe({
-        next: listener,
-        error(err) {
-          console.log('--- fatal error in forest:', err);
-        },
-      });
-    }
-    return this.observable.subscribe(listener);
+  subscribe(listener: any): Subscription {
+    const safeListener = listenerFactory(listener);
+    return this.observable.subscribe(safeListener);
   }
 
-  select(listener: listenerType, selector: selectorFn): Subscription {
-    if (typeof listener === 'function') {
-      return this.select(
-        {
-          next: listener,
-          error(err) {
-            console.log('--- fatal error in forest:', err);
-          },
-        },
-        selector,
-      );
-    }
-    return this.observable.pipe(map(selector), distinctUntilChanged()).subscribe(listener);
+  select(listener: any, selector: selectorFn): Subscription {
+    const safeListener = listenerFactory(listener);
+    return this.observable.pipe(map(selector), distinctUntilChanged())
+      .subscribe(safeListener);
   }
 
   // --------------- ACTIONS -------------------
@@ -165,8 +149,8 @@ export class Leaf implements leafI {
       });
     }
 
-    if (config.setKeys) {
-      this.fixedSetters = config.setKeys;
+    if (config.fixedSetters) {
+      this.fixedSetters = config.fixedSetters;
     } else {
       // setting fixedSetters will trigger updateDo automatically
       this.updateDo(true);
@@ -178,6 +162,7 @@ export class Leaf implements leafI {
   }
 
   updateDoSetters() {
+    this.setters = {};
     if (this.canHaveSetters) {
       if (this.fixedSetters) {
         // manually specify the setters you want.

@@ -41,7 +41,7 @@ export function noopVoidListener() {}
  * @param completeListener
  */
 export const listenerFactory = (
-  listener: listenerFn | pojo = noopListener,
+  listener: any = noopListener,
   errorListener: listenerFn = noopListener,
   completeListener: voidFn = noopVoidListener,
 ): listenerObj => {

@@ -32,7 +32,6 @@ export type leafI = {
   filter?: valueFilterFn;
   test?(value: any): any;
   validate(): void;
-  fixedSetters?: any[] | null;
 
   childKeys?: collectObj; // key = value to replace in leaf, value == string (leafId)
   child(key: keyName): leafI | undefined;
@@ -51,7 +50,9 @@ export type leafI = {
 
   do: leafFnObj;
   addAction(name: string, action: leafDoFn): void;
-  updateDoSetters(setKeys?: any[]): void;
+  updateDoSetters(): void;
+  fixedSetters: any[] | null;
+  updateDo(updateSetters?: boolean) : void;
   set(key: any, value: any): leafI;
   get(key: any): any;
   recompute(): void;
@@ -60,9 +61,9 @@ export type leafI = {
 
   observable: Observable<any>;
   subscribe: (
-    listener: Partial<Observer<Set<transObj>>> | ((value: Set<transObj>) => void) | undefined,
+    listener: any,
   ) => Subscription;
-  select: (listener: listenerType, selector: selectorFn) => Subscription;
+  select: (listener: any, selector: selectorFn) => Subscription;
 } & valuable;
 export type testFn = (value: any, leaf: leafI) => any;
 export type leafFn = (...rest: any[]) => any;
@@ -89,7 +90,7 @@ export type leafConfig = {
   name?: leafName;
   children?: { [key: string]: configChild } | Map<any, configChild>;
   actions?: leafDoObj;
-  setKeys?: string[];
+  fixedSetters?: string[];
   filter?: valueFilterFn;
   original?: boolean;
   debug?: boolean;

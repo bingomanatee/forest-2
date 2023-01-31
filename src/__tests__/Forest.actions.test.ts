@@ -127,7 +127,7 @@ describe('Forest', () => {
         });
 
         const history: any[] = [];
-        point.subscribe((value) => history.push(value));
+        point.subscribe((value: any) => history.push(value));
 
         point.do.setXYZ(10, 20, 30);
         expect(point.value).toEqual({ x: 10, y: 20, z: 30 });
@@ -178,6 +178,15 @@ describe('Forest', () => {
         expect(point.value).toEqual({ a: 1, b: 2, c: 3, y: 3 });
       });
 
+      it('should update setters when requested', () => {
+        const point = new Forest({ $value: { x: 1, y: 2 } });
+        point.value = { a: 1, b: 2, c: 3 };
+        point.root.updateDo(true);
+        expect(point.do.set_x).toBeUndefined();
+        point.do.set_a(3);
+        expect(point.value).toEqual({ a: 3, b: 2, c: 3 });
+      });
+
       it('should hide and expose setters depending on the type of the leaf', () => {
         const point = new Forest({
           $value: { q: 10, y: 20 },
@@ -202,6 +211,23 @@ describe('Forest', () => {
         // now that point is a "settable" type -- setters reappear.
         expect(point.value).toEqual(new Map([['q', 40]]));
       });
+
+      describe('with fixedSetters', () => {
+        it('should ignore the existing keys if fixedSetters are provided', () => {
+          const wierdPoint = new Forest({$value: {x: 0, y: 0, z: 0}, fixedSetters: ['a', 'b', 'c']});
+
+          expect(wierdPoint.do.set_x).toBeUndefined();
+          expect(wierdPoint.do.set_a).toBeDefined();
+
+          wierdPoint.do.set_a(10);
+          expect(wierdPoint.value).toEqual({x: 0, y: 0, z: 0, a: 10});
+
+          wierdPoint.root.updateDo(true);
+
+          expect(wierdPoint.do.set_x).toBeUndefined();
+          expect(wierdPoint.do.set_a).toBeDefined();
+        })
+      })
     });
 
     describe('documentation', () => {

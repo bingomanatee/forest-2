@@ -62,31 +62,13 @@ export class Forest {
     return this._observable;
   }
 
-  subscribe(listener: listenerType): Subscription {
-    if (typeof listener === 'function') {
-      return this.subscribe({
-        next: listener,
-        error(err) {
-          console.log('--- fatal error in forest:', err);
-        },
-      });
-    }
-    return this.observable.subscribe(listener);
+  subscribe(listener: any): Subscription {
+    return this.root.subscribe(listener);
   }
 
-  select(listener: listenerType, selector: selectorFn): Subscription {
-    if (typeof listener === 'function') {
-      return this.select(
-        {
-          next: listener,
-          error(err) {
-            console.log('--- fatal error in forest:', err);
-          },
-        },
-        selector,
-      );
-    }
-    return this.observable.pipe(map(selector), distinctUntilChanged()).subscribe(listener);
+  select(listener: any, selector: selectorFn): Subscription {
+
+    return this.root.select(listener, selector);
   }
 
   public leaves = new Map<string, leafI>();

@@ -5,10 +5,10 @@ function watch(forest: Forest) {
   const history: any[] = [];
 
   const sub = forest.subscribe({
-    next(value) {
+    next(value: any) {
       history.push(value);
     },
-    error(err) {
+    error(err: any) {
       console.log('error in sub:', err);
     },
   });
@@ -23,10 +23,10 @@ describe('Forest', () => {
       const history: any[] = [];
 
       simpleState.subscribe({
-        next(value) {
+        next(value: any) {
           history.push(value);
         },
-        error(err) {
+        error(err: any) {
           console.log('error in sub:', err);
         },
       });
@@ -64,7 +64,7 @@ describe('Forest', () => {
       });
       const tlHistory: any[] = [];
 
-      rect.child('tl')?.subscribe((value) => tlHistory.push(value));
+      rect.child('tl')?.subscribe((value: any) => tlHistory.push(value));
 
       rect.value = { br: { x: 10, y: 20 } };
       expect(tlHistory).toEqual([{ x: 0, y: 0 }]);

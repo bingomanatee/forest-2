@@ -1,14 +1,13 @@
 import { Forest } from '../index';
-import { leafI } from '../types';
 
 function watch(forest: Forest) {
   const history: any[] = [];
 
   const sub = forest.subscribe({
-    next(value) {
+    next(value: any) {
       history.push(value);
     },
-    error(err) {
+    error(err: any) {
       console.log('error in sub:', err);
     },
   });
@@ -121,10 +120,10 @@ describe('Forest', () => {
       const history: any[] = [];
 
       const sub = numState.subscribe({
-        next(value) {
+        next(value: any) {
           history.push(value);
         },
-        error(err) {
+        error(err: any) {
           console.log('error in sub:', err);
         },
       });
