@@ -130,7 +130,7 @@ export class Leaf implements leafI {
   do: leafDoObj = EMPTY_DO;
   private _fixedSetters: any[] | null = null;
   get fixedSetters(): any[] | null {
-    return this._fixedSetters
+    return this._fixedSetters;
   }
 
   set fixedSetters(value: any[] | null) {
@@ -200,7 +200,7 @@ export class Leaf implements leafI {
 
   updateDo(updateSetters = false) {
     if (updateSetters) {
-      this.updateDoSetters()
+      this.updateDoSetters();
     }
     if (!this.canHaveSetters) {
       this.do = this.actions;
@@ -221,7 +221,7 @@ export class Leaf implements leafI {
    * @param fromDoInit {boolean} whether the function is part of a loop in fromInit; if not, it reconstitutes the do property immediately .
    */
   addAction(name: any, fn: (...args: any[]) => any, setter = false, fromDoInit = false) {
-    if (! (name && typeof name === 'string')) {
+    if (!(name && typeof name === 'string')) {
       return;
     }
     name = name.trim();
@@ -252,19 +252,14 @@ export class Leaf implements leafI {
   }
 
   private addSet(name: any, fromDoInit = false) {
-    if (! (name && typeof name === 'string')) {
+    if (!(name && typeof name === 'string')) {
       return;
     }
     name = name.trim(); // @TODO: better filtering
     if (!name) return;
     const setter = `set_${name}`;
     if (setter) {
-      this.addAction(
-        setter,
-        (leaf: leafI, value: any) => leaf.set(name, value),
-        true,
-        fromDoInit,
-      );
+      this.addAction(setter, (leaf: leafI, value: any) => leaf.set(name, value), true, fromDoInit);
     }
   }
 
