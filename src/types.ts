@@ -1,27 +1,42 @@
-import { transObj } from '@wonderlandlabs/transact/dist/types';
+import { transactionSet, transObj } from '@wonderlandlabs/transact/dist/types';
 import { collectObj, generalObj } from '@wonderlandlabs/collect/lib/types';
 import { MonoTypeOperatorFunction, Observable, Observer, Subscription } from 'rxjs';
+import { LeafManager } from './LeafManager'
 
 // -------------- general things
 
 export type pojo = { [key: string | symbol]: any };
 export type genFn = (...args: any[]) => any;
-// ------------- Leaf related types
+// ------------- Leaf related type
 
 export type keyName = string | number;
 export type leafName = string | number;
+export type leafVariants = '' | 'collection';
+export type leafCollectionType = 'array' | 'map' | 'object';
+
 export interface valuable {
   value: any;
   fast?: boolean;
 }
+
+export type forestConfig = {
+  trans?: transactionSet,
+  leafMgr: LeafManager
+}
+
 export type leafI = {
   id: string;
   name?: leafName;
+  variant?: leafVariants;
+  collectionType?: leafCollectionType;
+
+  terminated?: boolean;
+
   $isLeaf: symbol;
   getLeaf(id: string): leafI | undefined;
 
-  purgePending(trans?: transObj | undefined, fromParent?: boolean): void;
-  pushPending(value: any, trans: transObj): void;
+  purgePending(id?: number | undefined, fromParent?: boolean): void;
+  pushPending(value: any, id?: number): void;
   pendings?: collectObj;
   purgeAfter(transId: number): void;
   commitPending: () => void;
@@ -32,6 +47,7 @@ export type leafI = {
   filter?: valueFilterFn;
   test?(value: any): any;
   validate(): void;
+  trans: transactionSet;
 
   childKeys?: collectObj; // key = value to replace in leaf, value == string (leafId)
   child(key: keyName): leafI | undefined;
@@ -76,15 +92,16 @@ export type valueCache = { lastTransId: number; value: any };
 
 // ------------- leaf config
 
-export type pending = { trans: transObj; store: collectObj };
+export type pending = { trans: number; store: collectObj };
 type configChild = leafConfig | any;
 export type leafConfig = {
   $value: any;
   id?: string;
   key?: any;
+  variant?: leafVariants;
   parentId?: string;
-  types?: string | string[] | boolean;
-  tests?: testFn | testFn[];
+  type?: string | string[] | boolean;
+  test?: testFn | testFn[];
   name?: leafName;
   children?: { [key: string]: configChild } | Map<any, configChild>;
   actions?: leafDoObj;
@@ -96,7 +113,7 @@ export type leafConfig = {
   meta?: Map<any, any> | generalObj | collectObj;
 };
 
-// ------------- RxJS / observable types
+// ------------- RxJS / observable type
 
 export type listenerType = Partial<Observer<Set<transObj>>> | ((value: Set<transObj>) => void) | undefined;
 export type selectorFn = (value: any) => any;

@@ -1,92 +1,92 @@
 import { transObj } from '@wonderlandlabs/transact/dist/types';
 import { leafI } from './types';
-import { Forest } from './Forest';
+import { LeafManager } from './LeafManager'
 
-export const handlers = (self: Forest) => ({
+export const handlers = (leafMgr: LeafManager) => ({
   handlers: {
     setLeafFieldValue: [
       (trans: transObj, leafId: string, key: any, value: any) => {
-        self.dot('updateFieldValue', leafId, key, value);
-        self.dot('validatePending');
+        trans.transactionSet.do('updateFieldValue', leafId, key, value);
+        trans.transactionSet.do('validatePending');
       },
-      (err: any, trans: transObj, ...other: any[]) => {
-        self.purgePending(trans);
+      (err: any, trans: transObj) => {
+        leafMgr.purgePending(trans.id);
         throw err;
       },
     ],
     doAction: [
       (trans: transObj, fn: () => void) => {
-        trans.meta.set('startingTransId', self.lastTransId);
+        trans.meta.set('startingTransId', leafMgr.lastTransId);
         fn();
       },
       (err: any, trans: transObj) => {
-        self.purgeTo(trans.meta.get('startingTransId'));
+        leafMgr.purgeTo(trans.meta.get('startingTransId'));
         throw err;
       },
     ],
     setLeafValue: [
       (trans: transObj, leafId: string, value: any) => {
-        self.dot('update', leafId, value);
-        self.dot('validatePending');
+        trans.transactionSet.do('update', leafId, value);
+        trans.transactionSet.do('validatePending');
       },
       (err: any, trans: transObj, ...other: any[]) => {
-        self.purgePending(trans);
+        leafMgr.purgePending(trans.id);
         throw err;
       },
     ],
     validatePending: () => {
-      self.pendingLeaves?.forEach((leaf: leafI) => leaf.validate());
+      leafMgr.pendingLeaves?.forEach((leaf: leafI) => leaf.validate());
     },
     updateFieldValue: [
       (trans: transObj, leafId: string, key: any, value: any, fromChild?: boolean) => {
-        const target = self.leaves.get(leafId);
+        const target = leafMgr.leaves.get(leafId);
         if (!target) {
           throw new Error(`updateFieldValue: cannot find ${leafId}`);
         }
         if (target.childKeys?.hasKey(key)) {
           const childId = target.childKeys.get(key);
-          self.dot('update', childId, value, true);
+          trans.transactionSet.do('update', childId, value, true);
         } else {
           const store = target.store.clone();
           store.set(key, value);
-          target.pushPending(store, trans);
+          target.pushPending(store, trans.id);
         }
         if (!fromChild && target.parent) {
-          self.dot('updateFromChild', target.parentId, leafId);
+          trans.transactionSet.do('updateFromChild', target.parentId, leafId);
         }
       },
       (error: any, trans: transObj) => {
-        self.purgePending(trans);
+        leafMgr.purgePending(trans.id);
         throw error;
       },
     ],
     update: [
       (trans: transObj, leafId: string, value: any, fromParent?: boolean) => {
-        const leaf = self.leaves.get(leafId);
+        const leaf = leafMgr.leaves.get(leafId);
         if (leaf) {
-          leaf.pushPending(leaf.filter ? leaf.filter(value, leaf) : value, trans);
+          leaf.pushPending(leaf.filter ? leaf.filter(value, leaf) : value, trans.id);
           leaf.shareChildValues();
           if (!fromParent && leaf.parentId) {
-            self.trans.do('updateFromChild', leaf.parentId, leafId);
+            trans.transactionSet.do('updateFromChild', leaf.parentId, leafId);
           }
         }
       },
       (error: any, trans: transObj, ...other: any[]) => {
         // console.log('update: error', error, 'args: ', trans, other);
-        self.purgePending(trans);
+        leafMgr.purgePending(trans.id);
         throw error;
       },
     ],
     updateFromChild(trans: transObj, parentId: string, childId: string) {
-      const parent = self.leaves.get(parentId);
-      const child = self.leaves.get(childId);
+      const parent = leafMgr.leaves.get(parentId);
+      const child = leafMgr.leaves.get(childId);
       if (parent && child && parent.childKeys?.hasKey(childId)) {
         const key = parent.childKeys?.get(childId);
         if (key !== undefined) {
-          self.dot('updateFieldValue', parentId, key, child.value, true);
+          trans.transactionSet.do('updateFieldValue', parentId, key, child.value, true);
         }
         if (parent.parentId) {
-          self.trans.do('updateFromChild', parent.parentId, parentId);
+          trans.transactionSet.do('updateFromChild', parent.parentId, parentId);
         }
       }
     },

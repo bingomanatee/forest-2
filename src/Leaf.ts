@@ -1,16 +1,16 @@
-import { collectObj, generalObj } from '@wonderlandlabs/collect/lib/types';
+import { collectObj } from '@wonderlandlabs/collect/lib/types';
 import { c } from '@wonderlandlabs/collect';
 import { v4 } from 'uuid';
-import { Forest } from './Forest';
-import { transObj } from '@wonderlandlabs/transact/dist/types';
+import { transactionSet } from '@wonderlandlabs/transact/dist/types';
 import {
   childDef,
+  forestConfig,
   keyName,
   leafConfig,
   leafDoObj,
+  leafFnObj,
   leafI,
   leafName,
-  listenerType,
   pending,
   selectorFn,
   testFn,
@@ -21,7 +21,9 @@ import { LeafChild } from './LeafChild';
 import produce, { enableMapSet } from 'immer';
 import isEqual from 'lodash.isequal';
 import { distinctUntilChanged, map, Observable, Observer, Subscription } from 'rxjs';
-import { commitPipes, listenerFactory } from './utils';
+import { commitPipes, initTransManager, listenerFactory } from './utils';
+import { TransactionSet } from '@wonderlandlabs/transact'
+import { LeafManager } from './LeafManager'
 
 enableMapSet();
 
@@ -40,9 +42,20 @@ const setterName = (key: any) => {
 };
 
 export class Leaf implements leafI {
-  constructor(forest: Forest, config: leafConfig | any) {
-    this.id = 'id' in config ? config.id : v4();
 
+  constructor(config: leafConfig | any, manager?: forestConfig) {
+   const {trans, leafMgr} = (manager || initTransManager())
+    if (!manager) {
+      if (!('id' in config)) {
+        config.id = 'root';
+      }
+    }
+    this.id = 'id' in config ? config.id : v4();
+    if (trans) {
+      this.trans = trans;
+    }
+    this.leafMgr = leafMgr;
+    this.leafMgr.addLeaf(this);
     if (!isLeafConfig(config)) {
       config = {
         $value: config,
@@ -52,7 +65,6 @@ export class Leaf implements leafI {
 
     const lcConfig = config as leafConfig;
     this.name = lcConfig.name;
-    this.forest = forest;
     this.parentId = lcConfig.parentId;
     this.realStore = c(config.filter ? config.filter(lcConfig.$value, this) : lcConfig.$value);
     this.filter = lcConfig.filter;
@@ -74,8 +86,8 @@ export class Leaf implements leafI {
 
   public id: string;
   public readonly $isLeaf = LEAF_TYPE;
-  private readonly forest: Forest;
   public fast = false;
+  private leafMgr: LeafManager;
 
   private _test?: testFn | undefined;
   public get test() {
@@ -89,12 +101,15 @@ export class Leaf implements leafI {
   public readonly originalStore: collectObj;
 
   // ---------------- subscription
+  /*
+   this emits the root leaf's value whenever the transacrtions empty.
+   */
 
   _observable?: Observable<any>;
   get observable() {
     if (!this._observable) {
       //@ts-ignore
-      this._observable = this.forest.trans.pipe(...commitPipes(this));
+      this._observable = this.trans.pipe(...commitPipes(this));
     }
     return this._observable;
   }
@@ -110,7 +125,8 @@ export class Leaf implements leafI {
   }
 
   // --------------- ACTIONS -------------------
-  do: leafDoObj = EMPTY_DO;
+  do: leafFnObj = EMPTY_DO;
+
   private _fixedSetters: any[] | null = null;
   get fixedSetters(): any[] | null {
     return this._fixedSetters;
@@ -209,20 +225,22 @@ export class Leaf implements leafI {
       return;
     }
     name = name.trim();
-    if (!name) return;
+    if (!name) {
+      return;
+    }
     const self = this;
     const handler = (...args: any[]) => fn(self, ...args);
     try {
       if (setter) {
         this.setters[name] = (...args) => {
           let out;
-          self.forest.dot('doAction', () => (out = handler(...args)), name);
+          self.dot('doAction', () => (out = handler(...args)), name);
           return out;
         };
       } else {
         this.actions[name] = (...args) => {
           let out;
-          self.forest.dot('doAction', () => (out = handler(...args)), name);
+          self.dot('doAction', () => (out = handler(...args)), name);
           return out;
         };
       }
@@ -240,7 +258,9 @@ export class Leaf implements leafI {
       return;
     }
     name = name.trim(); // @TODO: better filtering
-    if (!name) return;
+    if (!name) {
+      return;
+    }
     const setter = `set_${name}`;
     if (setter) {
       this.addAction(setter, (leaf: leafI, value: any) => leaf.set(name, value), true, fromDoInit);
@@ -298,11 +318,11 @@ export class Leaf implements leafI {
   private _initTest(config: leafConfig) {
     const list: testFn[] = [];
 
-    if (config.types) {
-      this._initTypes(list, config.types);
+    if (config.type) {
+      this._initTypes(list, config.type);
     }
-    if (config.tests) {
-      this._initTests(list, config.tests);
+    if (config.test) {
+      this._initTests(list, config.test);
     }
     switch (list.length) {
       case 0:
@@ -420,7 +440,7 @@ export class Leaf implements leafI {
   }
 
   set value(newValue: any) {
-    this.forest.dot('setLeafValue', this.id, newValue);
+    this.dot('setLeafValue', this.id, newValue);
   }
 
   set(key: any, value: any) {
@@ -428,7 +448,7 @@ export class Leaf implements leafI {
       throw new Error(`cannot set field of leaf ${this.id} (type = ${this.type}`);
     }
     if (this.store.get(key) !== value) {
-      this.forest.dot('setLeafFieldValue', this.id, key, value);
+      this.dot('setLeafFieldValue', this.id, key, value);
     }
     return this;
   }
@@ -530,15 +550,17 @@ export class Leaf implements leafI {
         value.name = key;
       }
       value.parentId = this.id;
-      const newLeaf = new Leaf(this.forest, { ...value });
+      const newLeaf = new Leaf( { ...value },
+        { trans: this.trans, leafMgr: this.leafMgr });
+
       this.childKeys.set(key, newLeaf.id);
-      this.forest.addLeaf(newLeaf);
+      this.addLeaf(newLeaf);
     } else if (isLeaf(value)) {
       const leaf = value as leafI;
       leaf.name = key;
       leaf.parentId = this.id;
       this.childKeys.set(key, leaf);
-      this.forest.addLeaf(leaf);
+      this.addLeaf(leaf);
     } else {
       // value is a "raw" value for a new leaf.
       this.addChild(
@@ -561,16 +583,16 @@ export class Leaf implements leafI {
    */
   public pendings?: collectObj;
 
-  pushPending(value: any, trans: transObj) {
+  pushPending(value: any, id: number) {
     if (!this.pendings) {
       this.pendings = c([]);
     }
     const type = this.type;
-    this.pendings.addAfter({ store: c(value), trans });
+    this.pendings.addAfter({ store: c(value), trans: id });
     if (this.type !== type) {
       this.updateDo();
     }
-    this.forest.markPending(this.id);
+    this.leafMgr.markPending(this.id);
   }
 
   /**
@@ -582,18 +604,18 @@ export class Leaf implements leafI {
       if (this.store.hasKey(key)) {
         const newChildValue = this.store.get(key); // the pending values' assertion
         if (!child.store.sameValues(child.value, newChildValue)) {
-          this.forest.dot('update', leafId, newChildValue, true);
+          this.dot('update', leafId, newChildValue, true);
         }
       }
     }
   }
 
-  purgePending(trans?: transObj | undefined) {
+  purgePending(id?: number | undefined) {
     try {
       if (this.pendings) {
-        if (trans) {
+        if (id) {
           this.pendings.filter((pending: pending) => {
-            return pending.trans.id < trans.id;
+            return pending.trans < id;
           });
         } else {
           this.pendings.clear();
@@ -601,7 +623,7 @@ export class Leaf implements leafI {
       }
       delete this._valueCache;
       if (!this.pendings?.size) {
-        this.forest.unmarkPending(this.id);
+        this.leafMgr.unmarkPending(this.id);
       }
       this.updateDo();
     } catch (err) {
@@ -611,7 +633,7 @@ export class Leaf implements leafI {
 
   purgeAfter(transId: number) {
     if (this.pendings) {
-      this.pendings.filter(({ trans }) => trans.id <= transId);
+      this.pendings.filter(({ trans }) => trans <= transId);
       if (this.pendings.size === 0) {
         this.purgePending();
       }
@@ -631,7 +653,7 @@ export class Leaf implements leafI {
   }
 
   change(value: any) {
-    this.forest.dot('updateLeafValue', this.id, value);
+    this.dot('updateLeafValue', this.id, value);
   }
 
   // ------------------- META --------------------
@@ -663,8 +685,12 @@ export class Leaf implements leafI {
 
   // ------------------- utility -------------------
 
+  addLeaf(leaf: leafI) {
+    this.leafMgr.addLeaf(leaf);
+  }
+
   getLeaf(id: string) {
-    return this.forest.leaves.get(id) || undefined;
+    return this.leafMgr.leaves.get(id) || undefined;
   }
 
   private get _pendingSummary() {
@@ -684,4 +710,18 @@ export class Leaf implements leafI {
       hasChildren: this.hasChildren,
     };
   }
+
+  /**
+   * shortcut to trams.do
+   * @param action:
+   * @param args
+   */
+  dot(action: string, ...args: any[]) {
+    return this.trans.do(action, ...args);
+  }
+
+  trans: transactionSet = standinTrans;
+
 }
+
+const standinTrans = new TransactionSet(({ handlers: {} }))

@@ -50,13 +50,13 @@ it uses the `@wonderlandlabs/walrus` system:
 | function  | function  | function   |
 
 
-* `type` is _not_ equivalent to typeof;  `object` is only equivalent to _true object_ -- it does not include the more specific container types (Map, Array, etc.)
+* `type` is _not_ equivalent to typeof;  `object` is only equivalent to _true object_ -- it does not include the more specific container type (Map, Array, etc.)
   nor does it include null. 
-* `form` merges all "empty" types into a catchall "void" and groups complex grouping types (Map, Object, Set) into a 
+* `form` merges all "empty" type into a catchall "void" and groups complex grouping type (Map, Object, Set) into a 
   general "container" category. 
-* `family` only has four buckets; all the multiple-value types are grouped under "container"
+* `family` only has four buckets; all the multiple-value type are grouped under "container"
 
-If you do not define tests, leaves can contain any value and the value can be changed from one type to another
+If you do not define test, leaves can contain any value and the value can be changed from one type to another
 without any constraint. This can cause difficulty when for instance you attach child leaves (more later) to a base 
 leaf and the leaf type is changed form a container form to a scalar one. 
 
@@ -65,8 +65,8 @@ leaf and the leaf type is changed form a container form to a scalar one.
 in your configuration you can (optional) limit:
 
 * which type(s) you want to allow the Leaf instance to allow (a string, or an array of strings)
-* one or more tests you want the Leaf instance to allow (a function or an array of functions)
-* you can for brevity set `tests: true` which will snapshot the type of the initial value (after filtering, see below) 
+* one or more test you want the Leaf instance to allow (a function or an array of functions)
+* you can for brevity set `test: true` which will snapshot the type of the initial value (after filtering, see below) 
   and requires all following values to equal that type. 
 
 #### custom validators 
@@ -94,7 +94,7 @@ const isPrime = (value) => {
     }
   }
 }
-const primeNumber = new Forest( {$value: 0, types: 'number', tests: [isInteger, isWhole, isPrime]});
+const primeNumber = new Forest( {$value: 0, type: 'number', test: [isInteger, isWhole, isPrime]});
 
 primeNumber.value = 7;
 
@@ -128,14 +128,14 @@ primeNumber.value = 11;
 ```
 
 Type constraints, if present, are processed before custom validators. If one custom validators fails,
-the other validators are not used; likewise only values that pass the types criteria 
+the other validators are not used; likewise only values that pass the type criteria 
 are tested with custom validators. 
 
 The second value passed to custom validators is the leaf itself.
 
-Any validator in a list of tests that fails will preempt subsequent tests. 
-Put another way, you can assume that any value passed to a function in a list of validators has passed all previous tests.
-A list of tests is essentially a long "and" clause. 
+Any validator in a list of test that fails will preempt subsequent test. 
+Put another way, you can assume that any value passed to a function in a list of validators has passed all previous test.
+A list of test is essentially a long "and" clause. 
 
 #### failed validation
 
@@ -150,7 +150,7 @@ Filters are (optional) "cleanup" functions that cleanse or transform candidate v
 * rounding numeric values 
 * removing "junk" characters or padding around string values
 * limiting arrays to a maximum size
-* asserting default properties on object types
+* asserting default properties on object type
 
 Filters occur _before_ validation. If they throw, they will (like a failed validation) "roll back" the 
 value's assertion. 
@@ -266,7 +266,7 @@ If you do the appending inside an action and it fails, **no values** will end up
 However, if you trap the adding of values, you can resume adding the other numbers 
 -- or at least you can keep the ones you addded up to that point. 
 
-the relevant tests:
+the relevant test:
 
 ```javascript
 

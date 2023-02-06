@@ -8,7 +8,7 @@ describe('Forest', () => {
     };
     const childConfig = (value: number) => ({
       $value: value,
-      types: true,
+      type: true,
       actions: {
         double,
       },
@@ -26,11 +26,11 @@ describe('Forest', () => {
       });
 
     describe('at root', () => {
-      const pointFn: () => Forest = () =>
+      const pointFn: () => leafI = () =>
         new Forest({
           $value: { x: 0, y: 0, z: 0 },
           actions: {
-            normalize: (leaf) => {
+            normalize: (leaf: leafI) => {
               const mag: number = leaf.do.magnitude();
               if (mag === 0) {
                 throw new Error('cannot normalize origin point');
@@ -38,7 +38,7 @@ describe('Forest', () => {
               leaf.do.scale(1 / mag);
             },
             scale: (leaf: leafI, scale: number) => (leaf.value = leaf.store.getMap((value) => value * scale)),
-            magnitude: (leaf) => leaf.store.getReduce((mag, value) => mag + value ** 2, 0) ** 0.5,
+            magnitude: (leaf: leafI) => leaf.store.getReduce((mag, value) => mag + value ** 2, 0) ** 0.5,
           },
         });
       const floorN = (n: number, x = 1000) => Math.floor(n * x) / x;
@@ -65,7 +65,7 @@ describe('Forest', () => {
         point.set('z', -20);
         point.do.normalize();
 
-        const valueRounded = point.root.store.getMap((num) => floorN(num, 1000));
+        const valueRounded = point.store.getMap((num) => floorN(num, 1000));
         expect(valueRounded).toEqual({ x: 0.408, y: 0.408, z: -0.817 });
       });
     });
@@ -84,18 +84,18 @@ describe('Forest', () => {
         new Forest({
           $value: [],
           actions: {
-            append(leaf, added) {
+            append(leaf: leafI, added: any) {
               if (typeof added !== 'number') {
                 throw new Error('non-numeric value passed to append');
               }
               leaf.value = [...leaf.value, added];
             },
-            appendMany(leaf, list: any[]) {
+            appendMany(leaf: leafI, list: any[]) {
               for (const val of list) {
                 leaf.do.append(val);
               }
             },
-            appendManyOrStop(leaf, list: any[]) {
+            appendManyOrStop(leaf: leafI, list: any[]) {
               for (const val of list) {
                 try {
                   leaf.do.append(val);
@@ -104,7 +104,7 @@ describe('Forest', () => {
                 }
               }
             },
-            appendManyIfGood(leaf, list: any[]) {
+            appendManyIfGood(leaf: leafI, list: any[]) {
               for (const val of list) {
                 try {
                   leaf.do.append(val);
@@ -181,7 +181,7 @@ describe('Forest', () => {
       it('should update setters when requested', () => {
         const point = new Forest({ $value: { x: 1, y: 2 } });
         point.value = { a: 1, b: 2, c: 3 };
-        point.root.updateDo(true);
+        point.updateDo(true);
         expect(point.do.set_x).toBeUndefined();
         point.do.set_a(3);
         expect(point.value).toEqual({ a: 3, b: 2, c: 3 });
@@ -191,7 +191,7 @@ describe('Forest', () => {
         const point = new Forest({
           $value: { q: 10, y: 20 },
           actions: {
-            double(leaf) {
+            double(leaf: leafI) {
               // @ts-ignore
               for (const [key, value] of leaf.store.iter) {
                 leaf.set(key, 2 * value);
@@ -207,6 +207,7 @@ describe('Forest', () => {
         point.value = 100;
         expect(point.do.set_q).toBeUndefined();
         point.value = new Map();
+        expect(point.do.set_q).toBeDefined();
         point.do.set_q(40);
         // now that point is a "settable" type -- setters reappear.
         expect(point.value).toEqual(new Map([['q', 40]]));
@@ -222,7 +223,7 @@ describe('Forest', () => {
           wierdPoint.do.set_a(10);
           expect(wierdPoint.value).toEqual({ x: 0, y: 0, z: 0, a: 10 });
 
-          wierdPoint.root.updateDo(true);
+          wierdPoint.updateDo(true);
 
           expect(wierdPoint.do.set_x).toBeUndefined();
           expect(wierdPoint.do.set_a).toBeDefined();
@@ -243,19 +244,19 @@ describe('Forest', () => {
           const point = new Forest({
             $value: {},
             children: {
-              x: { $value: 0, types: 'number', actions: pointValueActions },
-              y: { $value: 0, types: 'number', actions: pointValueActions },
+              x: { $value: 0, type: 'number', actions: pointValueActions },
+              y: { $value: 0, type: 'number', actions: pointValueActions },
             },
             actions: {
-              double(leaf) {
+              double(leaf: leafI) {
                 leaf.child('x')?.do.double();
                 leaf.child('y')?.do.double();
               },
-              magnitude(leaf) {
+              magnitude(leaf: leafI) {
                 const { x, y } = leaf.value;
                 return (x ** 2 + y ** 2) ** 0.5;
               },
-              offset(leaf, x, y) {
+              offset(leaf: leafI, x: any, y: any) {
                 leaf.do.set_x(leaf.value.x + x);
                 leaf.do.set_y(leaf.value.y + y);
               },

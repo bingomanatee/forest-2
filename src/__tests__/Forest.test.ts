@@ -1,9 +1,10 @@
 import { Forest } from '../index';
+import { leafI } from '../types'
 
-function watch(forest: Forest) {
+function watch(forest: leafI) {
   const history: any[] = [];
 
-  const sub = forest.subscribe({
+ forest.subscribe({
     next(value: any) {
       history.push(value);
     },
@@ -13,11 +14,12 @@ function watch(forest: Forest) {
   });
   return history;
 }
+
 describe('Forest', () => {
   describe('constructor', () => {
     it('has the correct localValue', () => {
       const store = new Forest({ $value: { a: 1, b: 2 } });
-      expect(store.root.value).toEqual({ a: 1, b: 2 });
+      expect(store.value).toEqual({ a: 1, b: 2 });
     });
 
     it('includes children', () => {
@@ -29,7 +31,7 @@ describe('Forest', () => {
         },
       });
 
-      expect(store.root.value).toEqual({ a: 1, b: 2, c: 3, d: 4 });
+      expect(store.value).toEqual({ a: 1, b: 2, c: 3, d: 4 });
     });
 
     it('overrides base value with children values', () => {
@@ -41,7 +43,7 @@ describe('Forest', () => {
         },
       });
 
-      expect(store.root.value).toEqual({ a: 1, b: 2, c: 3, d: 4 });
+      expect(store.value).toEqual({ a: 1, b: 2, c: 3, d: 4 });
     });
 
     it('accepts raw values', () => {
@@ -53,7 +55,7 @@ describe('Forest', () => {
         },
       });
 
-      expect(store.root.value).toEqual({ a: 1, b: 2, c: 3, d: 4 });
+      expect(store.value).toEqual({ a: 1, b: 2, c: 3, d: 4 });
     });
 
     it('accepts nested children', () => {
@@ -73,7 +75,7 @@ describe('Forest', () => {
         },
       });
 
-      expect(store.root.value).toEqual({
+      expect(store.value).toEqual({
         a: 1,
         b: 2,
         c: 3,
@@ -84,7 +86,7 @@ describe('Forest', () => {
     const nummer = (value = 0) =>
       new Forest({
         $value: value,
-        filter: (v) => {
+        filter: (v: any) => {
           if (typeof v !== 'number') {
             return 0;
           }
@@ -199,14 +201,14 @@ describe('Forest', () => {
     });
   });
 
-  describe('tests(validation)', () => {
-    describe('type tests', () => {
-      it('accept tests for leaf values', () => {
+  describe('test(validation)', () => {
+    describe('type test', () => {
+      it('accept test for leaf values', () => {
         const point = new Forest({
           $value: { x: 0, y: 0 },
           children: {
-            x: { $value: 0, types: 'number' },
-            y: { $value: 0, types: 'number' },
+            x: { $value: 0, type: 'number' },
+            y: { $value: 0, type: 'number' },
           },
         });
         point.set('x', 10);
@@ -234,13 +236,13 @@ describe('Forest', () => {
         throw new Error('must be a whole number');
       }
     };
-    describe('functional tests', () => {
-      it('accept tests for leaf values', () => {
+    describe('functional test', () => {
+      it('accept test for leaf values', () => {
         const point = new Forest({
           $value: { x: 0, y: 0 },
           children: {
-            x: { $value: 0, tests: isWhole },
-            y: { $value: 0, tests: isWhole },
+            x: { $value: 0, test: isWhole },
+            y: { $value: 0, test: isWhole },
           },
         });
         point.set('x', 10);
@@ -263,13 +265,13 @@ describe('Forest', () => {
         expect(point.value).toEqual({ x: 10, y: 20 });
       });
     });
-    describe('array of tests', () => {
-      it('accept tests for leaf values', () => {
+    describe('array of test', () => {
+      it('accept test for leaf values', () => {
         const point = new Forest({
           $value: { x: 0, y: 0 },
           children: {
-            x: { $value: 0, types: 'number', tests: [isWhole] },
-            y: { $value: 0, types: 'number', tests: [isWhole] },
+            x: { $value: 0, type: 'number', test: [isWhole] },
+            y: { $value: 0, type: 'number', test: [isWhole] },
           },
         });
         point.set('x', 10);
@@ -313,14 +315,14 @@ describe('Forest', () => {
 
     it('should not allow foo to be overwritten (by default)', () => {
       const fooForest = makeFooForest();
-      fooForest.root.setMeta('foo', Symbol('bar'));
+      fooForest.setMeta('foo', Symbol('bar'));
       expect(fooForest.getMeta('foo')).toEqual(foo);
     });
 
     it('should allow foo to be overwritten (if forced)', () => {
       const fooForest = makeFooForest();
       const bar = Symbol('bar');
-      fooForest.root.setMeta('foo', bar, true);
+      fooForest.setMeta('foo', bar, true);
       expect(fooForest.getMeta('foo')).toEqual(bar);
     });
   });

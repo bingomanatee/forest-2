@@ -1,7 +1,10 @@
 import { distinctUntilChanged, filter, map, share } from 'rxjs';
 import { transObj } from '@wonderlandlabs/transact/dist/types';
-import { pojo, mutators, listenerFn, valuable, voidFn, listenerType, listenerObj } from './types';
+import { listenerFn, listenerObj, listenerType, mutators, pojo, valuable, voidFn } from './types';
 import { c } from '@wonderlandlabs/collect';
+import { LeafManager } from './LeafManager'
+import { TransactionSet } from '@wonderlandlabs/transact'
+import { handlers } from './handlers'
 
 /**
  * Desperately tries to repress any error thrown by function;
@@ -81,3 +84,24 @@ const listenerObjFactory = (listener: pojo): listenerObj => {
   const { next = noopListener, error = noopListener, complete = noopVoidListener }: listenerObj = list.value;
   return listenerFactoryFn(next, error, complete);
 };
+
+export function initTransManager() {
+  const mgr = new LeafManager();
+  const trans = new TransactionSet(handlers(mgr));
+  trans.subscribe(
+    listenerFactory((transSet: Set<transObj>) => {
+      if (transSet.size === 0) {
+        if (mgr.hasPendingLeaves()) {
+          mgr.commitPending();
+        }
+      } else {
+        mgr.lastTransId = c(transSet).getReduce((memo: number, trans: transObj) => {
+          return Math.max(memo, trans.id);
+        }, mgr.lastTransId) as number;
+      }
+    }))
+  return {
+    leafMgr: mgr,
+    trans
+  }
+}
