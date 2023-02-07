@@ -1,7 +1,7 @@
 import { transactionSet, transObj } from '@wonderlandlabs/transact/dist/types';
 import { collectObj, generalObj } from '@wonderlandlabs/collect/lib/types';
 import { MonoTypeOperatorFunction, Observable, Observer, Subscription } from 'rxjs';
-import { LeafManager } from './LeafManager'
+import { LeafManager } from './LeafManager';
 
 // -------------- general things
 
@@ -20,9 +20,9 @@ export interface valuable {
 }
 
 export type forestConfig = {
-  trans?: transactionSet,
-  leafMgr: LeafManager
-}
+  trans?: transactionSet;
+  leafMgr: LeafManager;
+};
 
 export type leafI = {
   id: string;

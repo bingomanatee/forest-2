@@ -22,8 +22,8 @@ import produce, { enableMapSet } from 'immer';
 import isEqual from 'lodash.isequal';
 import { distinctUntilChanged, map, Observable, Observer, Subscription } from 'rxjs';
 import { commitPipes, initTransManager, listenerFactory } from './utils';
-import { TransactionSet } from '@wonderlandlabs/transact'
-import { LeafManager } from './LeafManager'
+import { TransactionSet } from '@wonderlandlabs/transact';
+import { LeafManager } from './LeafManager';
 
 enableMapSet();
 
@@ -42,9 +42,8 @@ const setterName = (key: any) => {
 };
 
 export class Leaf implements leafI {
-
   constructor(config: leafConfig | any, manager?: forestConfig) {
-   const {trans, leafMgr} = (manager || initTransManager())
+    const { trans, leafMgr } = manager || initTransManager();
     if (!manager) {
       if (!('id' in config)) {
         config.id = 'root';
@@ -550,8 +549,7 @@ export class Leaf implements leafI {
         value.name = key;
       }
       value.parentId = this.id;
-      const newLeaf = new Leaf( { ...value },
-        { trans: this.trans, leafMgr: this.leafMgr });
+      const newLeaf = new Leaf({ ...value }, { trans: this.trans, leafMgr: this.leafMgr });
 
       this.childKeys.set(key, newLeaf.id);
       this.addLeaf(newLeaf);
@@ -721,7 +719,6 @@ export class Leaf implements leafI {
   }
 
   trans: transactionSet = standinTrans;
-
 }
 
-const standinTrans = new TransactionSet(({ handlers: {} }))
+const standinTrans = new TransactionSet({ handlers: {} });

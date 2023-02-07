@@ -1,6 +1,5 @@
-import { leafI } from './types'
-import { c } from '@wonderlandlabs/collect'
-
+import { leafI } from './types';
+import { c } from '@wonderlandlabs/collect';
 
 export class LeafManager {
   public leaves = new Map<string, leafI>();
@@ -22,7 +21,7 @@ export class LeafManager {
   }
 
   hasPendingLeaves() {
-    return this.pendingLeafIds.size > 0
+    return this.pendingLeafIds.size > 0;
   }
 
   commitPending() {

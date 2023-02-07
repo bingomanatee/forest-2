@@ -2,9 +2,9 @@ import { distinctUntilChanged, filter, map, share } from 'rxjs';
 import { transObj } from '@wonderlandlabs/transact/dist/types';
 import { listenerFn, listenerObj, listenerType, mutators, pojo, valuable, voidFn } from './types';
 import { c } from '@wonderlandlabs/collect';
-import { LeafManager } from './LeafManager'
-import { TransactionSet } from '@wonderlandlabs/transact'
-import { handlers } from './handlers'
+import { LeafManager } from './LeafManager';
+import { TransactionSet } from '@wonderlandlabs/transact';
+import { handlers } from './handlers';
 
 /**
  * Desperately tries to repress any error thrown by function;
@@ -99,9 +99,10 @@ export function initTransManager() {
           return Math.max(memo, trans.id);
         }, mgr.lastTransId) as number;
       }
-    }))
+    }),
+  );
   return {
     leafMgr: mgr,
-    trans
-  }
+    trans,
+  };
 }

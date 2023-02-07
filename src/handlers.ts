@@ -1,6 +1,6 @@
 import { transObj } from '@wonderlandlabs/transact/dist/types';
 import { leafI } from './types';
-import { LeafManager } from './LeafManager'
+import { LeafManager } from './LeafManager';
 
 export const handlers = (leafMgr: LeafManager) => ({
   handlers: {

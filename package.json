@@ -1,6 +1,6 @@
 {
   "name": "@wonderlandlabs/forest",
-  "version": "2.0.8",
+  "version": "2.0.9",
   "description": "React State Machine",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",

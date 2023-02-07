@@ -1,10 +1,10 @@
 import { Forest } from '../index';
-import { leafI } from '../types'
+import { leafI } from '../types';
 
 function watch(forest: leafI) {
   const history: any[] = [];
 
- forest.subscribe({
+  forest.subscribe({
     next(value: any) {
       history.push(value);
     },
