@@ -1,6 +1,8 @@
 import { transObj } from '@wonderlandlabs/transact/dist/types';
 import { leafI } from './types';
 import { LeafManager } from './LeafManager';
+import { collectObj } from '@wonderlandlabs/collect/lib/types'
+import { c } from '@wonderlandlabs/collect'
 
 export const handlers = (leafMgr: LeafManager) => ({
   handlers: {
@@ -29,7 +31,7 @@ export const handlers = (leafMgr: LeafManager) => ({
         trans.transactionSet.do('update', leafId, value);
         trans.transactionSet.do('validatePending');
       },
-      (err: any, trans: transObj, ...other: any[]) => {
+      (err: any, trans: transObj) => {
         leafMgr.purgePending(trans.id);
         throw err;
       },
@@ -49,7 +51,11 @@ export const handlers = (leafMgr: LeafManager) => ({
         } else {
           const store = target.store.clone();
           store.set(key, value);
-          target.pushPending(store, trans.id);
+          target.pushPending((store: collectObj) => {
+            const newStore = store.clone();
+            newStore.set(key, value);
+            return newStore;
+          }, trans.id);
         }
         if (!fromChild && target.parent) {
           trans.transactionSet.do('updateFromChild', target.parentId, leafId);
@@ -64,14 +70,15 @@ export const handlers = (leafMgr: LeafManager) => ({
       (trans: transObj, leafId: string, value: any, fromParent?: boolean) => {
         const leaf = leafMgr.leaves.get(leafId);
         if (leaf) {
-          leaf.pushPending(leaf.filter ? leaf.filter(value, leaf) : value, trans.id);
+          const newColl = c(leaf.filter ? leaf.filter(value, leaf) : value);
+          leaf.pushPending(() => newColl, trans.id);
           leaf.shareChildValues();
           if (!fromParent && leaf.parentId) {
             trans.transactionSet.do('updateFromChild', leaf.parentId, leafId);
           }
         }
       },
-      (error: any, trans: transObj, ...other: any[]) => {
+      (error: any, trans: transObj) => {
         // console.log('update: error', error, 'args: ', trans, other);
         leafMgr.purgePending(trans.id);
         throw error;

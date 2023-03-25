@@ -232,9 +232,64 @@ describe('Forest', () => {
     });
 
     describe('documentation', () => {
+
+      describe('strange map update', () => {
+        it('should add a map', () => {
+          const userString = typeof window !== 'undefined' ? window?.sessionStorage.getItem('user') : '';
+          let user = null;
+          if (userString) {
+            try {
+              user = JSON.parse(userString);
+            } catch (err) {
+              console.error('cannot parse user string', userString);
+            }
+          }
+
+          const initial = {
+            user,
+            showAddMap: false,
+            maps: [],
+            messages: [],
+            zoom: 1
+          };
+          const config = (
+            {
+              $value: initial,
+              actions: {
+                addMap(leaf: leafI, mapData: Record<string, any>) {
+                  const {
+                    lat, lng, mapName, textPrompt: address, zoom, size, customSize
+                  } = mapData;
+
+                  const newMaps = [...leaf.value.maps, {
+                    name: mapName || 'uid',
+                    map: { lat, lng, address, zoom, size, customSize }
+                  }]
+
+                  leaf.do.set_maps(newMaps);
+                },
+                hideAddMap(leaf: leafI) {
+                  leaf.do.set_showAddMap(false);
+                },
+                showAddMap(leaf: leafI) {
+                  leaf.do.set_showAddMap(true);
+                }
+              }
+            })
+
+          const globalState = new Forest(config);
+          let current = {};
+          globalState.subscribe((nv: any) => {
+            current = nv
+          });
+          globalState.do.addMap({ lat: 20, lng: 40, zoom: 8, address: 'foo', size: 'size', customSize: 100 });
+          expect(globalState.value.maps.length).toBe(1);
+          console.log('--- global state new value is ', current);
+        });
+      });
+
       describe('transactions', () => {
         it('should revert ALL the changes in an action with failed code', () => {
-          //  console.log('---------------------- TEST documentation/transactions ---------------');
 
           const pointValueActions = {
             double: (leaf: leafI) => (leaf.value = 2 * leaf.value),
@@ -264,24 +319,18 @@ describe('Forest', () => {
           });
 
           point.value = { x: 10, y: 20 };
-          // console.log('point.magnitude:', point.do.magnitude());
           point.child('x')?.do.double();
 
-          // console.log('---------------------- documentation/transactions ---------------');
           let message = '';
           try {
             point.value = { x: 40, y: 'fifty' };
           } catch (err: any) {
             if (err) {
               message = err.message;
-              // console.log('error:', err.message);
             }
           }
           expect(message).toMatch(/cannot add value of type string to leaf .* \(type number\)/);
-          // console.log('point.magnitude:', point.do.magnitude());
           point.do.offset(5, 15);
-          // console.log('---------------------- END documentation/transactions ---------------');
-          // console.log('---------------------- END TEST documentation/transactions ---------------');
         });
       });
     });

@@ -24,6 +24,8 @@ export type forestConfig = {
   leafMgr: LeafManager;
 };
 
+export type mutatorFn = (store: collectObj) => collectObj
+
 export type leafI = {
   id: string;
   name?: leafName;
@@ -36,7 +38,7 @@ export type leafI = {
   getLeaf(id: string): leafI | undefined;
 
   purgePending(id?: number | undefined, fromParent?: boolean): void;
-  pushPending(value: any, id?: number): void;
+  pushPending(mutator: mutatorFn, id?: number): void;
   pendings?: collectObj;
   purgeAfter(transId: number): void;
   commitPending: () => void;

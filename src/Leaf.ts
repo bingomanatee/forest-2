@@ -10,7 +10,7 @@ import {
   leafDoObj,
   leafFnObj,
   leafI,
-  leafName,
+  leafName, mutatorFn,
   pending,
   selectorFn,
   testFn,
@@ -20,7 +20,7 @@ import {
 import { LeafChild } from './LeafChild';
 import produce, { enableMapSet } from 'immer';
 import isEqual from 'lodash.isequal';
-import { distinctUntilChanged, map, Observable, Observer, Subscription } from 'rxjs';
+import { distinctUntilChanged, map, Observable, Subscription } from 'rxjs';
 import { commitPipes, initTransManager, listenerFactory } from './utils';
 import { TransactionSet } from '@wonderlandlabs/transact';
 import { LeafManager } from './LeafManager';
@@ -273,7 +273,7 @@ export class Leaf implements leafI {
   private _initTypes(list: testFn[], types: string | string[] | boolean) {
     switch (c(types).type) {
       case 'string':
-        list.push((value, leaf: leafI) => {
+        list.push((value) => {
           const con = c(value);
           if (con.type !== types) {
             throw new Error(`cannot add value of type ${con.type} to leaf ${this.id} (type ${types})`);
@@ -294,7 +294,7 @@ export class Leaf implements leafI {
         break;
 
       case 'array':
-        list.push((value, leaf: leafI) => {
+        list.push((value) => {
           const con = c(value);
           const typeList = types as string[];
           if (!typeList.includes(con.type)) {
@@ -374,12 +374,9 @@ export class Leaf implements leafI {
    */
   public get store() {
     if (this.pendings?.size) {
-      const store = (this.pendings.lastItem as pending).store;
-      if (store) {
-        return store;
-      } else {
-        console.warn('pendings has bad reference:', this.pendings.value);
-      }
+      let store = this.realStore.clone();
+      this.pendings.forEach(({mutator}) => store = mutator(store));
+      return store;
     }
     return this.realStore;
   }
@@ -581,12 +578,12 @@ export class Leaf implements leafI {
    */
   public pendings?: collectObj;
 
-  pushPending(value: any, id: number) {
+  pushPending(mutator: mutatorFn, id: number) {
     if (!this.pendings) {
       this.pendings = c([]);
     }
     const type = this.type;
-    this.pendings.addAfter({ store: c(value), trans: id });
+    this.pendings.addAfter({ mutator, trans: id });
     if (this.type !== type) {
       this.updateDo();
     }
@@ -641,13 +638,8 @@ export class Leaf implements leafI {
 
   commitPending() {
     this.children.forEach(({ child }) => child.commitPending());
-    if (this.pendings?.size) {
-      const { store } = this.pendings.lastItem;
-      if (store) {
-        this.realStore = store;
-        delete this._valueCache;
-      }
-    }
+    this.realStore = this.store;
+    delete this._valueCache;
   }
 
   change(value: any) {
