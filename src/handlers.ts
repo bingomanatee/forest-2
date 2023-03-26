@@ -60,7 +60,7 @@ export const handlers = (leafMgr: LeafManager) => ({
         if (!fromChild && target.parent) {
           trans.transactionSet.do('updateFromChild', target.parentId, leafId);
         }
-        leafMgr.validate(trans);
+        leafMgr.validate();
       },
       (error: any, trans: transObj) => {
         leafMgr.restoreBackups(trans.id);
@@ -79,7 +79,7 @@ export const handlers = (leafMgr: LeafManager) => ({
           if (!fromParent && leaf.parentId) {
             trans.transactionSet.do('updateFromChild', leaf.parentId, leafId);
           }
-          leafMgr.validate(trans);
+          leafMgr.validate();
           if (type !== leaf.type) {
             leaf.updateDo();
           }
