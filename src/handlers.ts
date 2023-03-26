@@ -1,8 +1,5 @@
 import { transObj } from '@wonderlandlabs/transact/dist/types';
-import { leafI } from './types';
 import { LeafManager } from './LeafManager';
-import { collectObj } from '@wonderlandlabs/collect/lib/types'
-import { c } from '@wonderlandlabs/collect'
 
 export const handlers = (leafMgr: LeafManager) => ({
   handlers: {
@@ -12,6 +9,7 @@ export const handlers = (leafMgr: LeafManager) => ({
       },
       (err: any, trans: transObj) => {
         const leafId = trans.params[0];
+        leafMgr.restoreBackups(trans.id);
         const target = leafMgr.leaves.get(leafId);
         if (target?.isDebug) {
           leafMgr.debug({ name: 'failed set', value: err, error: err });
@@ -26,6 +24,7 @@ export const handlers = (leafMgr: LeafManager) => ({
       },
       (err: any, trans: transObj) => {
         const leafId = trans.params[0];
+        leafMgr.restoreBackups(trans.id);
         const target = leafMgr.leaves.get(leafId);
         if (target?.isDebug) {
           leafMgr.debug({ name: 'failed action', value: err, error: err });
@@ -33,13 +32,18 @@ export const handlers = (leafMgr: LeafManager) => ({
         throw err;
       },
     ],
-    setLeafValue: (trans: transObj, leafId: string, value: any) => {
+    setLeafValue: [(trans: transObj, leafId: string, value: any) => {
       const target = leafMgr.leaves.get(leafId);
       if (!target) {
         throw new Error('cannot get leaf ' + leafId);
       }
       trans.transactionSet.do('update', leafId, value);
     },
+      (error: any, trans: transObj) => {
+        leafMgr.restoreBackups(trans.id)
+        throw error;
+      },
+    ],
     updateFieldValue: [
       (trans: transObj, leafId: string, key: any, value: any, fromChild?: boolean) => {
         const target = leafMgr.leaves.get(leafId);
@@ -50,19 +54,16 @@ export const handlers = (leafMgr: LeafManager) => ({
           const childId = target.childKeys.get(key);
           trans.transactionSet.do('update', childId, value, true);
         } else {
-          trans.meta.set('backup', target.store.clone().value);
+          leafMgr.backupLeaf(leafId);
           target.store.set(key, value);
         }
         if (!fromChild && target.parent) {
           trans.transactionSet.do('updateFromChild', target.parentId, leafId);
         }
+        leafMgr.validate(trans);
       },
       (error: any, trans: transObj) => {
-        const [leafId] = trans.params;
-        const target = leafMgr.leaves.get(leafId);
-        if (trans.meta.has('backup')) {
-          target?.store.change(trans.meta.get('backup'));
-        }
+        leafMgr.restoreBackups(trans.id);
         throw error;
       },
     ],
@@ -70,28 +71,26 @@ export const handlers = (leafMgr: LeafManager) => ({
       (trans: transObj, leafId: string, value: any, fromParent?: boolean) => {
         const leaf = leafMgr.leaves.get(leafId);
         if (leaf) {
-          trans.meta.set('backup', leaf.store.clone().value);
+          leafMgr.backupLeaf(leafId);
           const newValue = leaf.filter ? leaf.filter(value, leaf) : value;
+          const type = leaf.type;
           leaf.store.value = newValue;
           leaf.shareChildValues();
           if (!fromParent && leaf.parentId) {
             trans.transactionSet.do('updateFromChild', leaf.parentId, leafId);
           }
+          leafMgr.validate(trans);
+          if (type !== leaf.type) {
+            leaf.updateDo();
+          }
         }
       },
       (error: any, trans: transObj) => {
-        const [leafId, value] = trans.params;
-        const target = leafMgr.leaves.get(leafId);
-        if (trans.meta.has('backup')) {
-          target?.store.change(trans.meta.get('backup'));
-        }
-        if (target?.isDebug) {
-          leafMgr.debug({ name: 'failed setLeafValue', value: { leafId, value }, error });
-        }
+        leafMgr.restoreBackups(trans.id)
         throw error;
       },
     ],
-    updateFromChild(trans: transObj, parentId: string, childId: string) {
+    updateFromChild: [(trans: transObj, parentId: string, childId: string) => {
       const parent = leafMgr.leaves.get(parentId);
       const child = leafMgr.leaves.get(childId);
       if (parent && child && parent.childKeys?.hasKey(childId)) {
@@ -104,5 +103,10 @@ export const handlers = (leafMgr: LeafManager) => ({
         }
       }
     },
+      (error: any, trans: transObj) => {
+        leafMgr.restoreBackups(trans.id)
+        throw error;
+      },
+    ],
   },
 });

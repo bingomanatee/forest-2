@@ -5,6 +5,7 @@ import { c } from '@wonderlandlabs/collect';
 import { LeafManager } from './LeafManager';
 import { TransactionSet } from '@wonderlandlabs/transact';
 import { handlers } from './handlers';
+import isEqual from 'lodash.isequal'
 
 /**
  * Desperately tries to repress any error thrown by function;
@@ -28,8 +29,8 @@ export const safeFn = (fn: any, onError = 'error') => {
 
 export const commitPipes = (target: valuable): mutators =>
   target.fast
-    ? [filter((set: Set<transObj>) => set.size === 0), map(() => target.valueOf()), share()]
-    : [filter((set: Set<transObj>) => set.size === 0), map(() => target.valueOf()), distinctUntilChanged(), share()];
+    ? [filter((set: Set<transObj>) => set.size === 0), map(() => target.value), share()]
+    : [filter((set: Set<transObj>) => set.size === 0), map(() => target.value), distinctUntilChanged(isEqual), share()];
 
 export function noopListener() {}
 
@@ -88,6 +89,7 @@ const listenerObjFactory = (listener: pojo): listenerObj => {
 export function initTransManager() {
   const mgr = new LeafManager();
   const trans = new TransactionSet(handlers(mgr));
+  mgr.trans = trans;
   trans.subscribe(
     listenerFactory((transSet: Set<transObj>) => {
       if (transSet.size === 0) {

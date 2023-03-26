@@ -17,14 +17,11 @@ import {
   valueFilterFn,
 } from './types';
 import { LeafChild } from './LeafChild';
-import produce, { enableMapSet } from 'immer';
 import isEqual from 'lodash.isequal';
 import { BehaviorSubject, distinctUntilChanged, map, Observable, Subject, Subscription } from 'rxjs';
 import { commitPipes, initTransManager, listenerFactory } from './utils';
 import { TransactionSet } from '@wonderlandlabs/transact';
 import { LeafManager } from './LeafManager';
-
-enableMapSet();
 
 export const LEAF_TYPE = Symbol('LEAF_TYPE');
 export const EMPTY_DO = Object.freeze({});
@@ -363,9 +360,6 @@ export class Leaf implements leafI {
     }
     const value = this.test(this.value);
     if (value) {
-      console.log('test of ', value, 'returned', value);
-    }
-    if (value) {
       if (typeof value === 'string') {
         throw new Error(value);
       }
@@ -381,24 +375,6 @@ export class Leaf implements leafI {
    */
   public store: collectObj;
 
-  _localimmer?: any;
-
-  get immerValue(): any {
-    if (this.family !== 'container') {
-      return this.store.value;
-    }
-
-    const copy = produce(this.store.value, (draft: any) => {
-      return draft;
-    });
-
-    if (isEqual(copy, this._localimmer)) {
-      return this._localimmer;
-    }
-    this._localimmer = copy;
-    return copy;
-  }
-
   /* -------------- value passthroughs ------------ */
 
   _valueCache?: valueCache;
@@ -408,39 +384,29 @@ export class Leaf implements leafI {
     this.parent?.recompute();
   }
 
-  _valueImmer?: any;
-
   valueOf() {
     if (!this.hasChildren) {
       return this.store.value;
     }
     const store = this.store.clone();
     this.children.forEach(({ key, child }) => {
-      store.set(key, child.store.value);
+      store.set(key, child.value);
     });
     return store.value;
   }
 
   get value() {
-    throw new Error('cannot directly get the value of the store !!!');
-    if (!this.hasChildren) {
-      return this.immerValue;
-    }
-
-    const value = produce(this.store.value, (draft: any) => {
-      const store = c(draft);
-      this.children.forEach(({ key, child }) => {
-        store.set(key, child.store.value);
-      });
-      return store.value;
+    const store = c(this.store.clone(true).value);
+    this.children.forEach(({ key, child }) => {
+      store.set(key, child.value);
     });
 
-    if (isEqual(value, this._valueImmer)) {
-      return this._valueImmer;
+    if (isEqual(store.value, this._valueCache)) {
+      return this._valueCache;
     }
 
-    this._valueImmer = value;
-    return value;
+    this._valueCache = store.value;
+    return store.value;
   }
 
   set value(newValue: any) {
@@ -655,7 +621,6 @@ export class Leaf implements leafI {
       value: this.valueOf(),
       type: this.store.type,
       parentId: this.parentId,
-      _immerValue: this._valueImmer,
       hasChildren: this.hasChildren,
     };
   }

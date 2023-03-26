@@ -3,7 +3,7 @@ import { leafI } from '../types';
 import { generalObj } from '@wonderlandlabs/collect/lib/types'
 
 describe('Forest', () => {
-  describe.skip('typescript', () => {
+  describe('typescript', () => {
     it('can type-define an instance', () => {
       type PointValue = {
         x: number,
