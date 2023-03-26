@@ -1,11 +1,10 @@
 import { leafI } from './types';
-import { BehaviorSubject, Subject } from 'rxjs'
-import { generalObj } from '@wonderlandlabs/collect/lib/types'
-import { transactionSet, transObj } from '@wonderlandlabs/transact/dist/types'
-import sortBy from 'lodash.sortby'
+import { BehaviorSubject, Subject } from 'rxjs';
+import { generalObj } from '@wonderlandlabs/collect/lib/types';
+import { transactionSet, transObj } from '@wonderlandlabs/transact/dist/types';
+import sortBy from 'lodash.sortby';
 
 export class LeafManager {
-
   public trans?: transactionSet;
 
   public leaves = new Map<string, leafI>();
@@ -24,7 +23,7 @@ export class LeafManager {
   pendingTrans(transId = 0) {
     //@ts-ignore
     const subject: BehaviorSubject<Set<transObj>> = this.trans as BehaviorSubject<Set<transObj>>;
-    const pending = Array.from(subject.value).filter((subject)=> subject.id >= transId);
+    const pending = Array.from(subject.value).filter((subject) => subject.id >= transId);
     const sorted: transObj[] = sortBy(pending, 'id').reverse();
     return sorted;
   }
@@ -63,11 +62,11 @@ export class LeafManager {
       if (trans.meta.has('backupMap')) {
         trans.meta.get('backupMap').forEach((value: unknown, leafId: string) => {
           lines.push(['    leaf id', leafId, 'has ', JSON.stringify(value)].join(' '));
-        })
+        });
       }
     }
-    lines.push('========================')
-    console.log(lines.join("\n"));
+    lines.push('========================');
+    console.log(lines.join('\n'));
   }
   restoreBackups(transId: number) {
     const restored = new Set<string>();
@@ -79,10 +78,10 @@ export class LeafManager {
         return;
       }
 
-      const backupMap :  Map<string, unknown> = trans.meta.get('backupMap');
-      restored.forEach(key => backupMap.delete(key));
+      const backupMap: Map<string, unknown> = trans.meta.get('backupMap');
+      restored.forEach((key) => backupMap.delete(key));
       backupMap.forEach((value, leafId: string) => {
-        if(restored.has(leafId)) return;
+        if (restored.has(leafId)) return;
         const leaf = this.leaves.get(leafId);
         if (!leaf) {
           return;
@@ -103,14 +102,13 @@ export class LeafManager {
       const checked = new Set<string>();
 
       changedLeaves.forEach((leafId: string) => {
-        this.validateLeaf(leafId, checked)
+        this.validateLeaf(leafId, checked);
         const leaf = this.leaves.get(leafId);
         if (leaf?.parentId) {
           this.validateLeaf(leaf.parentId, checked, true);
         }
       });
-    })
-
+    });
   }
 
   validateLeaf(leafId: string, checked: Set<string>, down = false) {
@@ -121,7 +119,7 @@ export class LeafManager {
     if (!down) {
       leaf.children.forEach((child) => {
         const childId = child.leafId;
-        this.validateLeaf(childId, checked)
+        this.validateLeaf(childId, checked);
       });
     }
     if (checked.has(leafId)) {
@@ -134,7 +132,7 @@ export class LeafManager {
     checked.add(leafId);
 
     if (leaf.parentId && down) {
-      this.validateLeaf(leaf.parentId, checked, down)
+      this.validateLeaf(leaf.parentId, checked, down);
     }
   }
 }

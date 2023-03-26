@@ -32,15 +32,16 @@ export const handlers = (leafMgr: LeafManager) => ({
         throw err;
       },
     ],
-    setLeafValue: [(trans: transObj, leafId: string, value: any) => {
-      const target = leafMgr.leaves.get(leafId);
-      if (!target) {
-        throw new Error('cannot get leaf ' + leafId);
-      }
-      trans.transactionSet.do('update', leafId, value);
-    },
+    setLeafValue: [
+      (trans: transObj, leafId: string, value: any) => {
+        const target = leafMgr.leaves.get(leafId);
+        if (!target) {
+          throw new Error('cannot get leaf ' + leafId);
+        }
+        trans.transactionSet.do('update', leafId, value);
+      },
       (error: any, trans: transObj) => {
-        leafMgr.restoreBackups(trans.id)
+        leafMgr.restoreBackups(trans.id);
         throw error;
       },
     ],
@@ -86,25 +87,26 @@ export const handlers = (leafMgr: LeafManager) => ({
         }
       },
       (error: any, trans: transObj) => {
-        leafMgr.restoreBackups(trans.id)
+        leafMgr.restoreBackups(trans.id);
         throw error;
       },
     ],
-    updateFromChild: [(trans: transObj, parentId: string, childId: string) => {
-      const parent = leafMgr.leaves.get(parentId);
-      const child = leafMgr.leaves.get(childId);
-      if (parent && child && parent.childKeys?.hasKey(childId)) {
-        const key = parent.childKeys?.get(childId);
-        if (key !== undefined) {
-          trans.transactionSet.do('updateFieldValue', parentId, key, child.store.value, true);
+    updateFromChild: [
+      (trans: transObj, parentId: string, childId: string) => {
+        const parent = leafMgr.leaves.get(parentId);
+        const child = leafMgr.leaves.get(childId);
+        if (parent && child && parent.childKeys?.hasKey(childId)) {
+          const key = parent.childKeys?.get(childId);
+          if (key !== undefined) {
+            trans.transactionSet.do('updateFieldValue', parentId, key, child.store.value, true);
+          }
+          if (parent.parentId) {
+            trans.transactionSet.do('updateFromChild', parent.parentId, parentId);
+          }
         }
-        if (parent.parentId) {
-          trans.transactionSet.do('updateFromChild', parent.parentId, parentId);
-        }
-      }
-    },
+      },
       (error: any, trans: transObj) => {
-        leafMgr.restoreBackups(trans.id)
+        leafMgr.restoreBackups(trans.id);
         throw error;
       },
     ],

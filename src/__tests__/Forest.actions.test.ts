@@ -138,7 +138,7 @@ describe('Forest', () => {
           point.do.setXYZ(40, 50, 'sixty');
         } catch (err: any) {
           e = err;
-          console.log('caught error:', e)
+          console.log('caught error:', e);
         }
         expect(e?.message).toMatch(/cannot add value of type string to leaf root.* \(type number\)/);
         expect(history).toEqual(beforeErrHistory);
@@ -233,7 +233,6 @@ describe('Forest', () => {
     });
 
     describe('documentation', () => {
-
       describe('strange map update', () => {
         it('should add a map', () => {
           const userString = typeof window !== 'undefined' ? window?.sessionStorage.getItem('user') : '';
@@ -251,37 +250,37 @@ describe('Forest', () => {
             showAddMap: false,
             maps: [],
             messages: [],
-            zoom: 1
+            zoom: 1,
           };
-          const config = (
-            {
-              $value: initial,
-              actions: {
-                addMap(leaf: leafI, mapData: Record<string, any>) {
-                  const {
-                    lat, lng, mapName, textPrompt: address, zoom, size, customSize
-                  } = mapData;
+          const config = {
+            $value: initial,
+            actions: {
+              addMap(leaf: leafI, mapData: Record<string, any>) {
+                const { lat, lng, mapName, textPrompt: address, zoom, size, customSize } = mapData;
 
-                  const newMaps = [...leaf.store.value.maps, {
+                const newMaps = [
+                  ...leaf.store.value.maps,
+                  {
                     name: mapName || 'uid',
-                    map: { lat, lng, address, zoom, size, customSize }
-                  }]
+                    map: { lat, lng, address, zoom, size, customSize },
+                  },
+                ];
 
-                  leaf.do.set_maps(newMaps);
-                },
-                hideAddMap(leaf: leafI) {
-                  leaf.do.set_showAddMap(false);
-                },
-                showAddMap(leaf: leafI) {
-                  leaf.do.set_showAddMap(true);
-                }
-              }
-            })
+                leaf.do.set_maps(newMaps);
+              },
+              hideAddMap(leaf: leafI) {
+                leaf.do.set_showAddMap(false);
+              },
+              showAddMap(leaf: leafI) {
+                leaf.do.set_showAddMap(true);
+              },
+            },
+          };
 
           const globalState = new Forest(config);
           let current = {};
           globalState.subscribe((nv: any) => {
-            current = nv
+            current = nv;
           });
           globalState.do.addMap({ lat: 20, lng: 40, zoom: 8, address: 'foo', size: 'size', customSize: 100 });
           expect((globalState.valueOf() as Record<string, any>).maps.length).toBe(1);
@@ -290,13 +289,12 @@ describe('Forest', () => {
 
       describe('transactions', () => {
         it('should revert ALL the changes in an action with failed code', () => {
-
           const pointValueActions = {
             double: (leaf: leafI) => (leaf.value = 2 * (leaf.valueOf() as number)),
             halve: (leaf: leafI) => (leaf.value = (leaf.valueOf() as number) / 2),
           };
 
-          type pointObj = { x: number, y: number };
+          type pointObj = { x: number; y: number };
 
           const point = new Forest({
             $value: {},
@@ -310,7 +308,7 @@ describe('Forest', () => {
                 leaf.child('y')?.do.double();
               },
               magnitude(leaf: leafI) {
-                const { x, y } = (leaf.valueOf() as pointObj);
+                const { x, y } = leaf.valueOf() as pointObj;
                 return (x ** 2 + y ** 2) ** 0.5;
               },
               offset(leaf: leafI, x: any, y: any) {

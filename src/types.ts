@@ -24,7 +24,7 @@ export type forestConfig = {
   leafMgr: LeafManager;
 };
 
-export type mutatorFn = (store: collectObj) => collectObj
+export type mutatorFn = (store: collectObj) => collectObj;
 
 export type leafI = {
   id: string;
@@ -34,7 +34,7 @@ export type leafI = {
   readonly isDebug: boolean;
   terminated?: boolean;
 
-  valueOf() : unknown
+  valueOf(): unknown;
 
   $isLeaf: symbol;
   getLeaf(id: string): leafI | undefined;

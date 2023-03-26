@@ -5,7 +5,7 @@ import { c } from '@wonderlandlabs/collect';
 import { LeafManager } from './LeafManager';
 import { TransactionSet } from '@wonderlandlabs/transact';
 import { handlers } from './handlers';
-import isEqual from 'lodash.isequal'
+import isEqual from 'lodash.isequal';
 
 /**
  * Desperately tries to repress any error thrown by function;

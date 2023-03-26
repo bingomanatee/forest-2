@@ -38,7 +38,6 @@ const setterName = (key: any) => {
 };
 
 export class Leaf implements leafI {
-
   constructor(config: leafConfig | any, manager?: forestConfig) {
     const { trans, leafMgr } = manager || initTransManager();
     if (!manager) {
@@ -593,8 +592,8 @@ export class Leaf implements leafI {
     return {
       id: this.id,
       value: this.valueOf(),
-      trans: this._transSummary.map((t: transObj) => t.toJSON())
-    }
+      trans: this._transSummary.map((t: transObj) => t.toJSON()),
+    };
   }
 
   addLeaf(leaf: leafI) {
@@ -636,7 +635,7 @@ export class Leaf implements leafI {
         type: 'dot',
         action,
         args,
-        ...this.status
+        ...this.status,
       });
     }
     return this.trans.do(action, ...args);
