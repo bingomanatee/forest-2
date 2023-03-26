@@ -17,9 +17,9 @@ function watch(forest: leafI) {
 
 describe('Forest', () => {
   describe('constructor', () => {
-    it('has the correct localValue', () => {
+    it('has the correct immerValue', () => {
       const store = new Forest({ $value: { a: 1, b: 2 } });
-      expect(store.value).toEqual({ a: 1, b: 2 });
+      expect(store.valueOf()).toEqual({ a: 1, b: 2 });
     });
 
     it('includes children', () => {
@@ -31,7 +31,7 @@ describe('Forest', () => {
         },
       });
 
-      expect(store.value).toEqual({ a: 1, b: 2, c: 3, d: 4 });
+      expect(store.valueOf()).toEqual({ a: 1, b: 2, c: 3, d: 4 });
     });
 
     it('overrides base value with children values', () => {
@@ -43,7 +43,7 @@ describe('Forest', () => {
         },
       });
 
-      expect(store.value).toEqual({ a: 1, b: 2, c: 3, d: 4 });
+      expect(store.valueOf()).toEqual({ a: 1, b: 2, c: 3, d: 4 });
     });
 
     it('accepts raw values', () => {
@@ -55,7 +55,7 @@ describe('Forest', () => {
         },
       });
 
-      expect(store.value).toEqual({ a: 1, b: 2, c: 3, d: 4 });
+      expect(store.valueOf()).toEqual({ a: 1, b: 2, c: 3, d: 4 });
     });
 
     it('accepts nested children', () => {
@@ -75,7 +75,7 @@ describe('Forest', () => {
         },
       });
 
-      expect(store.value).toEqual({
+      expect(store.valueOf()).toEqual({
         a: 1,
         b: 2,
         c: 3,
@@ -96,14 +96,14 @@ describe('Forest', () => {
 
     it('accepts filters', () => {
       const n = nummer(8.2);
-      expect(n.value).toBe(8);
+      expect(n.valueOf()).toBe(8);
 
       n.value = 3.333;
-      expect(n.value).toEqual(3);
+      expect(n.valueOf()).toEqual(3);
       n.value = '44';
-      expect(n.value).toEqual(0);
+      expect(n.valueOf()).toEqual(0);
       n.value = -100.1;
-      expect(n.value).toEqual(-101);
+      expect(n.valueOf()).toEqual(-101);
     });
   });
 
@@ -112,7 +112,7 @@ describe('Forest', () => {
       const point = new Forest({ $value: { x: 0, y: 0 } });
       point.set('x', 10);
 
-      expect(point.value).toEqual({ x: 10, y: 0 });
+      expect(point.valueOf()).toEqual({ x: 10, y: 0 });
     });
   });
 
@@ -131,7 +131,7 @@ describe('Forest', () => {
       });
 
       numState.value = 10;
-      expect(numState.value).toBe(10);
+      expect(numState.valueOf()).toBe(10);
       expect(history).toEqual([0, 10]);
 
       numState.value = 20;
@@ -213,7 +213,7 @@ describe('Forest', () => {
         });
         point.set('x', 10);
 
-        expect(point.value).toEqual({ x: 10, y: 0 });
+        expect(point.valueOf()).toEqual({ x: 10, y: 0 });
 
         let e: any;
         try {
@@ -221,14 +221,14 @@ describe('Forest', () => {
         } catch (err) {
           e = err;
         }
-        expect(e.message).toMatch(/cannot add value of type string to leaf root:.* \(type number\)/);
+        expect(e.message).toMatch(/cannot add value of type string to leaf root.* \(type number\)/);
         // type error causes thrown error;
         // but if trapped you can continue to change
 
-        expect(point.value).toEqual({ x: 10, y: 0 });
+        expect(point.valueOf()).toEqual({ x: 10, y: 0 });
 
         point.set('y', 20);
-        expect(point.value).toEqual({ x: 10, y: 20 });
+        expect(point.valueOf()).toEqual({ x: 10, y: 20 });
       });
     });
     const isWhole = (n: any) => {
@@ -247,7 +247,7 @@ describe('Forest', () => {
         });
         point.set('x', 10);
 
-        expect(point.value).toEqual({ x: 10, y: 0 });
+        expect(point.valueOf()).toEqual({ x: 10, y: 0 });
 
         let e: any;
         try {
@@ -259,10 +259,10 @@ describe('Forest', () => {
         // type error causes thrown error;
         // but if trapped you can continue to change
 
-        expect(point.value).toEqual({ x: 10, y: 0 });
+        expect(point.valueOf()).toEqual({ x: 10, y: 0 });
 
         point.set('y', 20);
-        expect(point.value).toEqual({ x: 10, y: 20 });
+        expect(point.valueOf()).toEqual({ x: 10, y: 20 });
       });
     });
     describe('array of test', () => {
@@ -276,7 +276,7 @@ describe('Forest', () => {
         });
         point.set('x', 10);
 
-        expect(point.value).toEqual({ x: 10, y: 0 });
+        expect(point.valueOf()).toEqual({ x: 10, y: 0 });
 
         let e: any;
         try {
@@ -284,21 +284,21 @@ describe('Forest', () => {
         } catch (err) {
           e = err;
         }
-        expect(e.message).toMatch(/cannot add value of type string to leaf root:.* \(type number\)/);
+        expect(e.message).toMatch(/cannot add value of type string to leaf root.* \(type number\)/);
         // type error causes thrown error, and value is not changed.
         // if trapped you can continue to change
 
-        expect(point.value).toEqual({ x: 10, y: 0 });
+        expect(point.valueOf()).toEqual({ x: 10, y: 0 });
         try {
           point.set('x', -100);
         } catch (err2) {
           e = err2;
         }
         expect(e.message).toEqual('must be a whole number');
-        expect(point.value).toEqual({ x: 10, y: 0 });
+        expect(point.valueOf()).toEqual({ x: 10, y: 0 });
 
         point.set('y', 20);
-        expect(point.value).toEqual({ x: 10, y: 20 });
+        expect(point.valueOf()).toEqual({ x: 10, y: 20 });
       });
     });
   });

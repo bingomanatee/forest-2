@@ -1,7 +1,7 @@
-import { collectObj } from '@wonderlandlabs/collect/lib/types';
+import { collectObj, generalObj } from '@wonderlandlabs/collect/lib/types';
 import { c } from '@wonderlandlabs/collect';
 import { v4 } from 'uuid';
-import { transactionSet } from '@wonderlandlabs/transact/dist/types';
+import { transactionSet, transObj } from '@wonderlandlabs/transact/dist/types';
 import {
   childDef,
   forestConfig,
@@ -10,8 +10,7 @@ import {
   leafDoObj,
   leafFnObj,
   leafI,
-  leafName, mutatorFn,
-  pending,
+  leafName,
   selectorFn,
   testFn,
   valueCache,
@@ -20,7 +19,7 @@ import {
 import { LeafChild } from './LeafChild';
 import produce, { enableMapSet } from 'immer';
 import isEqual from 'lodash.isequal';
-import { distinctUntilChanged, map, Observable, Subscription } from 'rxjs';
+import { BehaviorSubject, distinctUntilChanged, map, Observable, Subject, Subscription } from 'rxjs';
 import { commitPipes, initTransManager, listenerFactory } from './utils';
 import { TransactionSet } from '@wonderlandlabs/transact';
 import { LeafManager } from './LeafManager';
@@ -42,11 +41,12 @@ const setterName = (key: any) => {
 };
 
 export class Leaf implements leafI {
+
   constructor(config: leafConfig | any, manager?: forestConfig) {
     const { trans, leafMgr } = manager || initTransManager();
     if (!manager) {
       if (!('id' in config)) {
-        config.id = 'root';
+        config.id = 'root-' + v4();
       }
     }
     this.id = 'id' in config ? config.id : v4();
@@ -65,7 +65,7 @@ export class Leaf implements leafI {
     const lcConfig = config as leafConfig;
     this.name = lcConfig.name;
     this.parentId = lcConfig.parentId;
-    this.realStore = c(config.filter ? config.filter(lcConfig.$value, this) : lcConfig.$value);
+    this.store = c(config.filter ? config.filter(lcConfig.$value, this) : lcConfig.$value);
     this.filter = lcConfig.filter;
     this.firstType = this.type;
     this._initTest(lcConfig);
@@ -81,6 +81,19 @@ export class Leaf implements leafI {
     this.fast = !!lcConfig.fast;
     this._initDo(config);
     this.originalStore = this.store.clone(true);
+    if (config.debug) {
+      this.debug = config.debug;
+    }
+  }
+
+  public debug = false;
+
+  get isDebug() {
+    return !!(this.debug || this.parent?.isDebug);
+  }
+
+  get debugger(): Subject<generalObj> {
+    return this.leafMgr.debugger;
   }
 
   public id: string;
@@ -233,13 +246,13 @@ export class Leaf implements leafI {
       if (setter) {
         this.setters[name] = (...args) => {
           let out;
-          self.dot('doAction', () => (out = handler(...args)), name);
+          self.dot('doAction', self.id, () => (out = handler(...args)), name);
           return out;
         };
       } else {
         this.actions[name] = (...args) => {
           let out;
-          self.dot('doAction', () => (out = handler(...args)), name);
+          self.dot('doAction', self.id, () => (out = handler(...args)), name);
           return out;
         };
       }
@@ -363,27 +376,14 @@ export class Leaf implements leafI {
   // --------------------- store ----------------------
 
   /**
-   * realStore is the "established" value of the leaf; a validated, committed value.
-   * @private
-   */
-  private realStore: collectObj;
-
-  /**
    * the value asserted by a transaction (if in a transactional state);
    * or the validated realStore (if not.
    */
-  public get store() {
-    if (this.pendings?.size) {
-      let store = this.realStore.clone();
-      this.pendings.forEach(({mutator}) => store = mutator(store));
-      return store;
-    }
-    return this.realStore;
-  }
+  public store: collectObj;
 
   _localimmer?: any;
 
-  get localValue(): any {
+  get immerValue(): any {
     if (this.family !== 'container') {
       return this.store.value;
     }
@@ -410,19 +410,27 @@ export class Leaf implements leafI {
 
   _valueImmer?: any;
 
-  get value() {
+  valueOf() {
     if (!this.hasChildren) {
-      return this.localValue;
+      return this.store.value;
     }
-    // // caching is only used to optimize the blending of child values.
-    // if (this._valueCache?.lastTransId === this.forest.lastTransId) {
-    //   return this._valueCache.value;
-    // }
+    const store = this.store.clone();
+    this.children.forEach(({ key, child }) => {
+      store.set(key, child.store.value);
+    });
+    return store.value;
+  }
 
-    const value = produce(this.localValue, (draft: any) => {
-      const store = c(draft).clone();
+  get value() {
+    throw new Error('cannot directly get the value of the store !!!');
+    if (!this.hasChildren) {
+      return this.immerValue;
+    }
+
+    const value = produce(this.store.value, (draft: any) => {
+      const store = c(draft);
       this.children.forEach(({ key, child }) => {
-        store.set(key, child.value);
+        store.set(key, child.store.value);
       });
       return store.value;
     });
@@ -443,9 +451,7 @@ export class Leaf implements leafI {
     if (!(this.family === 'container')) {
       throw new Error(`cannot set field of leaf ${this.id} (type = ${this.type}`);
     }
-    if (this.store.get(key) !== value) {
-      this.dot('setLeafFieldValue', this.id, key, value);
-    }
+    this.dot('setLeafFieldValue', this.id, key, value);
     return this;
   }
 
@@ -453,6 +459,7 @@ export class Leaf implements leafI {
     if (!(this.family === 'container')) {
       throw new Error(`cannot get field of leaf ${this.id} (type = ${this.type}`);
     }
+
     return this.store.get(key);
   }
 
@@ -509,7 +516,7 @@ export class Leaf implements leafI {
       return;
     }
     this.childKeys?.deleteKey(key);
-    this.value = this.store.clone().deleteKey(key);
+    this.store.value = this.store.clone().deleteKey(key);
     const setName = setterName(key);
     if (setName && setName in this.setters) {
       delete this.setters[setName];
@@ -572,24 +579,6 @@ export class Leaf implements leafI {
 
   /* -------------------- pending values ------------------- */
 
-  /*
-    Pendings is an array of transactionally asserted value substitutes.
-    it is an array of pendings.
-   */
-  public pendings?: collectObj;
-
-  pushPending(mutator: mutatorFn, id: number) {
-    if (!this.pendings) {
-      this.pendings = c([]);
-    }
-    const type = this.type;
-    this.pendings.addAfter({ mutator, trans: id });
-    if (this.type !== type) {
-      this.updateDo();
-    }
-    this.leafMgr.markPending(this.id);
-  }
-
   /**
    * This method writes any values in the current LOCAL value
    * downwards to any named children.
@@ -598,52 +587,11 @@ export class Leaf implements leafI {
     for (const { child, leafId, key } of this.children) {
       if (this.store.hasKey(key)) {
         const newChildValue = this.store.get(key); // the pending values' assertion
-        if (!child.store.sameValues(child.value, newChildValue)) {
+        if (!child.store.sameValues(child.store.value, newChildValue)) {
           this.dot('update', leafId, newChildValue, true);
         }
       }
     }
-  }
-
-  purgePending(id?: number | undefined) {
-    try {
-      if (this.pendings) {
-        if (id) {
-          this.pendings.filter((pending: pending) => {
-            return pending.trans < id;
-          });
-        } else {
-          this.pendings.clear();
-        }
-      }
-      delete this._valueCache;
-      if (!this.pendings?.size) {
-        this.leafMgr.unmarkPending(this.id);
-      }
-      this.updateDo();
-    } catch (err) {
-      console.log('error in purgePending: ', err);
-    }
-  }
-
-  purgeAfter(transId: number) {
-    if (this.pendings) {
-      this.pendings.filter(({ trans }) => trans <= transId);
-      if (this.pendings.size === 0) {
-        this.purgePending();
-      }
-    }
-    this.parent?.recompute();
-  }
-
-  commitPending() {
-    this.children.forEach(({ child }) => child.commitPending());
-    this.realStore = this.store;
-    delete this._valueCache;
-  }
-
-  change(value: any) {
-    this.dot('updateLeafValue', this.id, value);
   }
 
   // ------------------- META --------------------
@@ -675,6 +623,14 @@ export class Leaf implements leafI {
 
   // ------------------- utility -------------------
 
+  private get status(): Record<string, any> {
+    return {
+      id: this.id,
+      value: this.valueOf(),
+      trans: this._transSummary.map((t: transObj) => t.toJSON())
+    }
+  }
+
   addLeaf(leaf: leafI) {
     this.leafMgr.addLeaf(leaf);
   }
@@ -683,19 +639,22 @@ export class Leaf implements leafI {
     return this.leafMgr.leaves.get(id) || undefined;
   }
 
-  private get _pendingSummary() {
-    return this.pendings?.getMap(({ store, trans }) => {
-      return [trans.id, trans.action, store.value];
+  private get _transSummary(): transObj[] {
+    // @ts-ignore
+    const active: Set<transObj> = (this.trans as BehaviorSubject<Set<transObj>>).value;
+    const list: transObj[] = [];
+    active.forEach((trans: transObj) => {
+      list.push(trans);
     });
+    return list;
   }
 
   toJSON() {
     return {
       id: this.id,
-      value: this.value,
+      value: this.valueOf(),
       type: this.store.type,
       parentId: this.parentId,
-      pendings: this._pendingSummary,
       _immerValue: this._valueImmer,
       hasChildren: this.hasChildren,
     };
@@ -707,6 +666,14 @@ export class Leaf implements leafI {
    * @param args
    */
   dot(action: string, ...args: any[]) {
+    if (this.isDebug) {
+      this.leafMgr.debug({
+        type: 'dot',
+        action,
+        args,
+        ...this.status
+      });
+    }
     return this.trans.do(action, ...args);
   }
 

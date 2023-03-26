@@ -4,7 +4,7 @@ import { leafI } from '../types';
 describe('Forest', () => {
   describe('actions', () => {
     const double = (leaf: leafI) => {
-      leaf.value = 2 * leaf.value;
+      leaf.value = 2 * (leaf.valueOf() as number);
     };
     const childConfig = (value: number) => ({
       $value: value,
@@ -48,7 +48,7 @@ describe('Forest', () => {
 
         expect(point.do.magnitude()).toEqual(0);
         point.set('x', 10);
-        expect(point.value).toEqual({ x: 10, y: 0, z: 0 });
+        expect(point.valueOf()).toEqual({ x: 10, y: 0, z: 0 });
         expect(point.do.magnitude()).toEqual(10);
 
         point.set('y', 10);
@@ -75,7 +75,7 @@ describe('Forest', () => {
         const point = makePoint(10, 0, -20);
         const child = point.child('x');
         child?.do.double();
-        expect(point.value).toEqual({ x: 20, y: 0, z: -20 });
+        expect(point.valueOf()).toEqual({ x: 20, y: 0, z: -20 });
       });
     });
 
@@ -88,7 +88,7 @@ describe('Forest', () => {
               if (typeof added !== 'number') {
                 throw new Error('non-numeric value passed to append');
               }
-              leaf.value = [...leaf.value, added];
+              leaf.value = [...(leaf.valueOf() as number[]), added];
             },
             appendMany(leaf: leafI, list: any[]) {
               for (const val of list) {
@@ -130,7 +130,7 @@ describe('Forest', () => {
         point.subscribe((value: any) => history.push(value));
 
         point.do.setXYZ(10, 20, 30);
-        expect(point.value).toEqual({ x: 10, y: 20, z: 30 });
+        expect(point.valueOf()).toEqual({ x: 10, y: 20, z: 30 });
 
         let e;
         const beforeErrHistory: any[] = [...history];
@@ -140,25 +140,25 @@ describe('Forest', () => {
           e = err;
         }
         expect(history).toEqual(beforeErrHistory);
-        expect(e?.message).toMatch(/cannot add value of type string to leaf root:.* \(type number\)/);
-        expect(point.value).toEqual({ x: 10, y: 20, z: 30 });
+        expect(e?.message).toMatch(/cannot add value of type string to leaf root.* \(type number\)/);
+        expect(point.valueOf()).toEqual({ x: 10, y: 20, z: 30 });
       });
 
       it('should let you trap the errors and preserve some of the state', () => {
         const list = makeList();
         list.do.appendMany([1, 2, 3]);
-        expect(list.value).toEqual([1, 2, 3]);
+        expect(list.valueOf()).toEqual([1, 2, 3]);
         try {
           list.do.appendMany([4, 5, 'six']);
         } catch (_e) {
           //@ts-ignore
         }
-        expect(list.value).toEqual([1, 2, 3]);
+        expect(list.valueOf()).toEqual([1, 2, 3]);
 
         list.do.appendManyOrStop([4, 5, 'six', 7, 8]);
-        expect(list.value).toEqual([1, 2, 3, 4, 5]);
+        expect(list.valueOf()).toEqual([1, 2, 3, 4, 5]);
         list.do.appendManyIfGood([6, 7, 'eight', 9, 10]);
-        expect(list.value).toEqual([1, 2, 3, 4, 5, 6, 7, 9, 10]);
+        expect(list.valueOf()).toEqual([1, 2, 3, 4, 5, 6, 7, 9, 10]);
       });
     });
 
@@ -167,7 +167,7 @@ describe('Forest', () => {
         const point = new Forest({ $value: { x: 1, y: 2 } });
         point.do.set_x(100);
         point.do.set_y(200);
-        expect(point.value).toEqual({ x: 100, y: 200 });
+        expect(point.valueOf()).toEqual({ x: 100, y: 200 });
       });
 
       it('should not change the setters when the keys change', () => {
@@ -175,7 +175,7 @@ describe('Forest', () => {
         point.value = { a: 1, b: 2, c: 3 };
         expect(point.do.set_a).toBeUndefined();
         point.do.set_y(3);
-        expect(point.value).toEqual({ a: 1, b: 2, c: 3, y: 3 });
+        expect(point.valueOf()).toEqual({ a: 1, b: 2, c: 3, y: 3 });
       });
 
       it('should update setters when requested', () => {
@@ -184,7 +184,7 @@ describe('Forest', () => {
         point.updateDo(true);
         expect(point.do.set_x).toBeUndefined();
         point.do.set_a(3);
-        expect(point.value).toEqual({ a: 3, b: 2, c: 3 });
+        expect(point.valueOf()).toEqual({ a: 3, b: 2, c: 3 });
       });
 
       it('should hide and expose setters depending on the type of the leaf', () => {
@@ -202,7 +202,7 @@ describe('Forest', () => {
 
         point.do.set_q(30);
         point.do.double();
-        expect(point.value).toEqual({ q: 60, y: 40 });
+        expect(point.valueOf()).toEqual({ q: 60, y: 40 });
         // setting to a scalar -- bye bye setters!
         point.value = 100;
         expect(point.do.set_q).toBeUndefined();
@@ -210,7 +210,7 @@ describe('Forest', () => {
         expect(point.do.set_q).toBeDefined();
         point.do.set_q(40);
         // now that point is a "settable" type -- setters reappear.
-        expect(point.value).toEqual(new Map([['q', 40]]));
+        expect(point.valueOf()).toEqual(new Map([['q', 40]]));
       });
 
       describe('with fixedSetters', () => {
@@ -221,7 +221,7 @@ describe('Forest', () => {
           expect(wierdPoint.do.set_a).toBeDefined();
 
           wierdPoint.do.set_a(10);
-          expect(wierdPoint.value).toEqual({ x: 0, y: 0, z: 0, a: 10 });
+          expect(wierdPoint.valueOf()).toEqual({ x: 0, y: 0, z: 0, a: 10 });
 
           wierdPoint.updateDo(true);
 
@@ -261,7 +261,7 @@ describe('Forest', () => {
                     lat, lng, mapName, textPrompt: address, zoom, size, customSize
                   } = mapData;
 
-                  const newMaps = [...leaf.value.maps, {
+                  const newMaps = [...leaf.store.value.maps, {
                     name: mapName || 'uid',
                     map: { lat, lng, address, zoom, size, customSize }
                   }]
@@ -283,8 +283,7 @@ describe('Forest', () => {
             current = nv
           });
           globalState.do.addMap({ lat: 20, lng: 40, zoom: 8, address: 'foo', size: 'size', customSize: 100 });
-          expect(globalState.value.maps.length).toBe(1);
-          console.log('--- global state new value is ', current);
+          expect((globalState.valueOf() as Record<string, any>).maps.length).toBe(1);
         });
       });
 
@@ -292,9 +291,11 @@ describe('Forest', () => {
         it('should revert ALL the changes in an action with failed code', () => {
 
           const pointValueActions = {
-            double: (leaf: leafI) => (leaf.value = 2 * leaf.value),
-            halve: (leaf: leafI) => (leaf.value = leaf.value / 2),
+            double: (leaf: leafI) => (leaf.value = 2 * (leaf.valueOf() as number)),
+            halve: (leaf: leafI) => (leaf.value = (leaf.valueOf() as number) / 2),
           };
+
+          type pointObj = { x: number, y: number };
 
           const point = new Forest({
             $value: {},
@@ -308,12 +309,12 @@ describe('Forest', () => {
                 leaf.child('y')?.do.double();
               },
               magnitude(leaf: leafI) {
-                const { x, y } = leaf.value;
+                const { x, y } = (leaf.valueOf() as pointObj);
                 return (x ** 2 + y ** 2) ** 0.5;
               },
               offset(leaf: leafI, x: any, y: any) {
-                leaf.do.set_x(leaf.value.x + x);
-                leaf.do.set_y(leaf.value.y + y);
+                leaf.do.set_x((leaf.valueOf() as pointObj).x + x);
+                leaf.do.set_y((leaf.valueOf() as pointObj).y + y);
               },
             },
           });

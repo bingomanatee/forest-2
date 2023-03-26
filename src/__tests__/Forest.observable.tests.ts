@@ -59,7 +59,7 @@ describe('Forest', () => {
         { x: 0, y: 0 },
         { x: -10, y: -10 },
       ]);
-      expect(rect.value).toEqual({
+      expect(rect.valueOf()).toEqual({
         br: {
           x: 10,
           y: 20,

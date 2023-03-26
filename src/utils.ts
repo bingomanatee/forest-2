@@ -28,8 +28,8 @@ export const safeFn = (fn: any, onError = 'error') => {
 
 export const commitPipes = (target: valuable): mutators =>
   target.fast
-    ? [filter((set: Set<transObj>) => set.size === 0), map(() => target.value), share()]
-    : [filter((set: Set<transObj>) => set.size === 0), map(() => target.value), distinctUntilChanged(), share()];
+    ? [filter((set: Set<transObj>) => set.size === 0), map(() => target.valueOf()), share()]
+    : [filter((set: Set<transObj>) => set.size === 0), map(() => target.valueOf()), distinctUntilChanged(), share()];
 
 export function noopListener() {}
 
@@ -91,9 +91,9 @@ export function initTransManager() {
   trans.subscribe(
     listenerFactory((transSet: Set<transObj>) => {
       if (transSet.size === 0) {
-        if (mgr.hasPendingLeaves()) {
-          mgr.commitPending();
-        }
+        /*if (mgr.hasPendingLeaves()) {
+          mgr.commitPending({source: 'trans listener'});
+        }*/
       } else {
         mgr.lastTransId = c(transSet).getReduce((memo: number, trans: transObj) => {
           return Math.max(memo, trans.id);

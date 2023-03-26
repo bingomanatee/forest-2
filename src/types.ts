@@ -31,17 +31,13 @@ export type leafI = {
   name?: leafName;
   variant?: leafVariants;
   collectionType?: leafCollectionType;
-
+  readonly isDebug: boolean;
   terminated?: boolean;
+
+  valueOf() : unknown
 
   $isLeaf: symbol;
   getLeaf(id: string): leafI | undefined;
-
-  purgePending(id?: number | undefined, fromParent?: boolean): void;
-  pushPending(mutator: mutatorFn, id?: number): void;
-  pendings?: collectObj;
-  purgeAfter(transId: number): void;
-  commitPending: () => void;
 
   store: collectObj;
   originalStore?: collectObj;
