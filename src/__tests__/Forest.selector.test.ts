@@ -49,7 +49,7 @@ describe('Forest', () => {
         expect(point.isFrozen).toBeFalsy();
       });
 
-      it.skip('should freeze changes while in place', () => {
+      it('should freeze changes while in place', () => {
         const point = makePoint();
         point.do.set_x(10);
         point.do.set_y(20);
