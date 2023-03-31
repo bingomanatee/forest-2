@@ -6,8 +6,10 @@ import {
   childDef,
   forestConfig,
   keyName,
-  leafConfig, leafDoFn,
-  leafDoObj, leafFn,
+  leafConfig,
+  leafDoFn,
+  leafDoObj,
+  leafFn,
   leafFnObj,
   leafI,
   leafName,
@@ -78,9 +80,9 @@ export class Leaf implements leafI {
     if (lcConfig.selectors) {
       c(lcConfig.selectors).forEach((fn, name: string) => {
         if (typeof fn === 'function') {
-          this.addSelector(name, fn)
+          this.addSelector(name, fn);
         }
-      })
+      });
     }
     Object.freeze(this.$);
 
@@ -384,14 +386,14 @@ export class Leaf implements leafI {
 
   public freeze(token: symbol) {
     if (this.parent) {
-      this.parent.freeze(token)
+      this.parent.freeze(token);
     } else {
       this.frozen.add(token);
     }
   }
 
   get isFrozen() {
-    return this.parent? this.parent.isFrozen : this.frozen.size > 0
+    return this.parent ? this.parent.isFrozen : this.frozen.size > 0;
   }
 
   public unfreeze(token?: symbol) {
@@ -425,14 +427,13 @@ export class Leaf implements leafI {
     this.selectors.set(name, fn);
     const self = this;
     if (Object.isFrozen(this.$)) {
-      this.$ = {...this.$};
+      this.$ = { ...this.$ };
       this.addSelector(name, fn);
       Object.freeze(this.$);
     }
     this.$[name] = (...args) => {
       return self.performSelector(name, fn, args);
-    }
-
+    };
   }
 
   // --------------------- store ----------------------

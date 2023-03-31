@@ -52,7 +52,7 @@ export type leafIBase = {
   readonly isFrozen: boolean;
 
   childKeys?: collectObj; // key = value to replace in leaf, value == string (leafId)
-  child(key: keyName): leafI| undefined;
+  child(key: keyName): leafI | undefined;
   parent?: leafI;
   children: childDef[];
   parentId?: string;
@@ -94,21 +94,21 @@ export type valueCache = { lastTransId: number; value: any };
 export type leafI = leafIBase & {
   do: leafFnObj;
   $: leafFnObj;
-}
+};
 // ----- typed
 
-
-export type typedLeaf<ValueType> = leafI & { value: ValueType }
+export type typedLeaf<ValueType> = leafI & { value: ValueType };
 export type typedDoLeaf<ValueType, DoObj> = leafIBase & {
-  value: ValueType,
-  do: DoObj | leafFnObj,
+  value: ValueType;
+  do: DoObj | leafFnObj;
   $: leafFnObj;
-}
+};
 export type typedDoSelLeaf<ValueType, DoObj, SelObj> = leafIBase & {
-  value: ValueType, do: DoObj | leafFnObj,
-  $: SelObj
-}
-export type typedSeLeaf<ValueType, SelObj> = leafIBase & { value: ValueType, $: SelObj }
+  value: ValueType;
+  do: DoObj | leafFnObj;
+  $: SelObj;
+};
+export type typedSeLeaf<ValueType, SelObj> = leafIBase & { value: ValueType; $: SelObj };
 
 // ------------- leaf config
 
