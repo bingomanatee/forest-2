@@ -2,9 +2,7 @@
 
 Forest 2.0 is a refactoring of the forest system using
 components that have been put into their own libraries: transact,
-walrus and collect. 
-
-**WARNING**: the online documenation for Forest is relevant to forest 1.0; work is ongoing to update it. 
+walrus and collect. It is documented [Here](https://forest-docs.vercel.app/).
 
 ## What is Forest? 
 
@@ -192,7 +190,7 @@ Custom actions are user-created actions.
 * They may or may not return a value.
 * They should (see below) be synchronous.
 * They are wrapped in a transaction; if there is an untrapped error, \ 
-  all change that occured in the action will be reverted.
+  all change that occurred in the action will be reverted.
 * You can call setter actions and custom actions from inside an action. 
 
 ```javascript
@@ -375,4 +373,21 @@ Children are attached to their parents by a reference on the child that has the 
 From the Child, there is an (optional) parentId that describes the child instance's parent. That being said, 
 there is no field in the child that defines _exactly where_ in the parent the child is attached. To reduce
 redundancy, this can be found only by exploring the parent's `.childKeys` collection. 
+
+## Selectors
+
+Sometimes you want to get a computed value from a Leaf. You can do this by defining a selector. Selectors
+are functions that take the value of a leaf (and optional arguments) and  pass out a value computed from the leaf.
+
+Actions -- see above --- *can* return a value. However they also occur in a transactional buffer, and that can slow 
+down execution. Selectors when called as executed without any insulation. 
+
+### Frozen States during Selectors
+
+Selectors are intended to be immutable and *not change* the value of a Leaf. As such, the entire *Forest* is temporarily
+frozen during the execution of a selector: no actions or setters can be performed until a selector completes.
+(the reverse is not true -- actions _can_ call selectors.)
+
+Care is taken to "unfreeze" a leaf if a selector throws, but if for some reason a leaf is locked up,
+calling `leaf.unfreeze()` will clear out its frozen status. 
 

@@ -6,8 +6,8 @@ import {
   childDef,
   forestConfig,
   keyName,
-  leafConfig,
-  leafDoObj,
+  leafConfig, leafDoFn,
+  leafDoObj, leafFn,
   leafFnObj,
   leafI,
   leafName,
@@ -74,6 +74,16 @@ export class Leaf implements leafI {
     if (lcConfig.meta) {
       c(lcConfig.meta).forEach((value, key) => this.setMeta(key, value));
     }
+
+    if (lcConfig.selectors) {
+      c(lcConfig.selectors).forEach((fn, name: string) => {
+        if (typeof fn === 'function') {
+          this.addSelector(name, fn)
+        }
+      })
+    }
+    Object.freeze(this.$);
+
     this.fast = !!lcConfig.fast;
     this._initDo(config);
     this.originalStore = this.store.clone(true);
@@ -241,12 +251,14 @@ export class Leaf implements leafI {
     try {
       if (setter) {
         this.setters[name] = (...args) => {
+          if (self.isFrozen) throw new Error('cannot perform any actions while frozen');
           let out;
           self.dot('doAction', self.id, () => (out = handler(...args)), name);
           return out;
         };
       } else {
         this.actions[name] = (...args) => {
+          if (self.isFrozen) throw new Error('cannot perform any actions while frozen');
           let out;
           self.dot('doAction', self.id, () => (out = handler(...args)), name);
           return out;
@@ -366,6 +378,63 @@ export class Leaf implements leafI {
     }
   }
 
+  // ---------------------- selectors ------------------
+
+  private frozen = new Set<symbol>();
+
+  public freeze(token: symbol) {
+    if (this.parent) {
+      this.parent.freeze(token)
+    } else {
+      this.frozen.add(token);
+    }
+  }
+
+  get isFrozen() {
+    return this.parent? this.parent.isFrozen : this.frozen.size > 0
+  }
+
+  public unfreeze(token?: symbol) {
+    if (this.parent) {
+      this.parent.unfreeze(token);
+    } else if (token) {
+      this.frozen.delete(token);
+    } else {
+      this.frozen.clear();
+    }
+  }
+
+  private selectors: Map<string, leafDoFn> = new Map();
+
+  $: Record<string, leafFn> = {};
+
+  private performSelector(name: string, fn: leafDoFn, args: any[]) {
+    const freezer = Symbol(name);
+    try {
+      this.freeze(freezer);
+      const out = fn(this, ...args);
+      this.unfreeze(freezer);
+      return out;
+    } catch (err) {
+      this.unfreeze(freezer);
+      throw err;
+    }
+  }
+
+  public addSelector(name: string, fn: leafDoFn) {
+    this.selectors.set(name, fn);
+    const self = this;
+    if (Object.isFrozen(this.$)) {
+      this.$ = {...this.$};
+      this.addSelector(name, fn);
+      Object.freeze(this.$);
+    }
+    this.$[name] = (...args) => {
+      return self.performSelector(name, fn, args);
+    }
+
+  }
+
   // --------------------- store ----------------------
 
   /**
@@ -409,10 +478,16 @@ export class Leaf implements leafI {
   }
 
   set value(newValue: any) {
+    if (this.isFrozen) {
+      throw new Error('cannot change the value of a leaf during the execution of a selector');
+    }
     this.dot('setLeafValue', this.id, newValue);
   }
 
   set(key: any, value: any) {
+    if (this.isFrozen) {
+      throw new Error('cannot change a leaf during the execution of a selector');
+    }
     if (!(this.family === 'container')) {
       throw new Error(`cannot set field of leaf ${this.id} (type = ${this.type}`);
     }

@@ -138,7 +138,6 @@ describe('Forest', () => {
           point.do.setXYZ(40, 50, 'sixty');
         } catch (err: any) {
           e = err;
-          console.log('caught error:', e);
         }
         expect(e?.message).toMatch(/cannot add value of type string to leaf root.* \(type number\)/);
         expect(history).toEqual(beforeErrHistory);

@@ -26,7 +26,7 @@ export type forestConfig = {
 
 export type mutatorFn = (store: collectObj) => collectObj;
 
-export type leafI = {
+export type leafIBase = {
   id: string;
   name?: leafName;
   variant?: leafVariants;
@@ -37,7 +37,7 @@ export type leafI = {
   valueOf(): unknown;
 
   $isLeaf: symbol;
-  getLeaf(id: string): leafI | undefined;
+  getLeaf(id: string): leafIBase | undefined;
 
   store: collectObj;
   originalStore?: collectObj;
@@ -47,8 +47,12 @@ export type leafI = {
   validate(): void;
   trans: transactionSet;
 
+  freeze(token: symbol): void;
+  unfreeze(token?: symbol): void;
+  readonly isFrozen: boolean;
+
   childKeys?: collectObj; // key = value to replace in leaf, value == string (leafId)
-  child(key: keyName): leafI | undefined;
+  child(key: keyName): leafI| undefined;
   parent?: leafI;
   children: childDef[];
   parentId?: string;
@@ -62,7 +66,6 @@ export type leafI = {
   family: string;
   fast: boolean;
 
-  do: leafFnObj;
   addAction(name: string, action: leafDoFn): void;
   updateDoSetters(): void;
   fixedSetters: any[] | null;
@@ -88,12 +91,31 @@ export type leafFnObj = { [name: string]: leafFn };
 export type childDef = { child: leafI; key: any; leafId: string };
 export type valueCache = { lastTransId: number; value: any };
 
+export type leafI = leafIBase & {
+  do: leafFnObj;
+  $: leafFnObj;
+}
+// ----- typed
+
+
+export type typedLeaf<ValueType> = leafI & { value: ValueType }
+export type typedDoLeaf<ValueType, DoObj> = leafIBase & {
+  value: ValueType,
+  do: DoObj | leafFnObj,
+  $: leafFnObj;
+}
+export type typedDoSelLeaf<ValueType, DoObj, SelObj> = leafIBase & {
+  value: ValueType, do: DoObj | leafFnObj,
+  $: SelObj
+}
+export type typedSeLeaf<ValueType, SelObj> = leafIBase & { value: ValueType, $: SelObj }
+
 // ------------- leaf config
 
-export type pending = { trans: number; store: collectObj };
 type configChild = leafConfig | any;
 export type leafConfig = {
   $value: any;
+  selectors?: leafDoObj;
   id?: string;
   key?: any;
   variant?: leafVariants;

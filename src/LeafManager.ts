@@ -71,8 +71,6 @@ export class LeafManager {
   restoreBackups(transId: number) {
     const restored = new Set<string>();
 
-    console.log('restoring from current backups', transId);
-
     this.pendingTrans(transId).forEach((trans: transObj) => {
       if (!trans.meta.has('backupMap')) {
         return;

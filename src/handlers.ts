@@ -51,6 +51,9 @@ export const handlers = (leafMgr: LeafManager) => ({
         if (!target) {
           throw new Error(`updateFieldValue: cannot find ${leafId}`);
         }
+        if (target.isFrozen) {
+          throw new Error('cannot change a leaf during a selection');
+        }
         if (target.childKeys?.hasKey(key)) {
           const childId = target.childKeys.get(key);
           trans.transactionSet.do('update', childId, value, true);
@@ -72,6 +75,9 @@ export const handlers = (leafMgr: LeafManager) => ({
       (trans: transObj, leafId: string, value: any, fromParent?: boolean) => {
         const leaf = leafMgr.leaves.get(leafId);
         if (leaf) {
+          if (leaf.isFrozen) {
+            throw new Error('cannot change a leaf during a selection');
+          }
           leafMgr.backupLeaf(leafId);
           const newValue = leaf.filter ? leaf.filter(value, leaf) : value;
           const type = leaf.type;
