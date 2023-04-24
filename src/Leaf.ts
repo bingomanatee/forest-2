@@ -141,7 +141,7 @@ export class Leaf implements leafI {
 
   select(listener: any, selector: selectorFn): Subscription {
     const safeListener = listenerFactory(listener);
-    return this.observable.pipe(map(selector), distinctUntilChanged()).subscribe(safeListener);
+    return this.observable.pipe(map(selector), distinctUntilChanged(isEqual)).subscribe(safeListener);
   }
 
   // --------------- ACTIONS -------------------

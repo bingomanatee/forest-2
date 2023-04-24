@@ -71,4 +71,58 @@ describe('Forest', () => {
       });
     });
   });
+
+  describe('select', () => {
+    it('should allow targeted subscription', () => {
+
+      const rect = new Forest({
+        $value: {},
+        children: {
+          tl: {
+            $value: {},
+            children: { x: 0, y: 0 },
+          },
+          br: {
+            $value: {},
+            children: { x: 0, y: 0 },
+          },
+        },
+      });
+      const brHistory: any[] = [];
+
+      const upperLeftSelect = rect.select((br: {x: number, y: number}) => {brHistory.push(br)},
+        (rectValue) => rectValue.br
+        );
+
+      expect(brHistory).toEqual([{x: 0, y: 0}]);
+
+      rect.child('tl')!.do.set_x(100);
+
+      expect(brHistory).toEqual([{x: 0, y: 0}]);
+
+      rect.child('br')!.do.set_x(100);
+
+      expect(brHistory).toEqual([
+        {x: 0, y: 0},
+        {x: 100, y: 0}
+      ]);
+
+      rect.child('br')!.value = {x: 100, y: 0};
+
+      expect(brHistory).toEqual([
+        {x: 0, y: 0},
+        {x: 100, y: 0}
+      ]);
+
+      rect.child('br')!.do.set_y(200);
+
+      expect(brHistory).toEqual([
+        {x: 0, y: 0},
+        {x: 100, y: 0},
+        {x: 100, y: 200}
+      ]);
+
+      upperLeftSelect.unsubscribe();
+    });
+  });
 });
